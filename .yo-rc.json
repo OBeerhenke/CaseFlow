@@ -1,0 +1,23 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "whichFolder": "subdir",
+    "solutionName": "ta-management",
+    "environment": "spo",
+    "useGulp": false,
+    "componentType": "webpart",
+    "template": "react",
+    "componentName": "TaManagement",
+    "componentDescription": "TA-Management Dashboard",
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.22.0",
+    "sdksVersions": {},
+    "version": "1.22.2",
+    "libraryName": "ta-management",
+    "libraryId": "1b7cecd5-79a0-468d-b6c3-c2aa4ff2e562",
+    "packageManager": "npm",
+    "solutionShortDescription": "ta-management description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false
+  }
+}

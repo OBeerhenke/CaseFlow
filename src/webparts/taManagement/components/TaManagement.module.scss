@@ -1,0 +1,760 @@
+@import '~@fluentui/react/dist/sass/References.scss';
+
+/* ─── Design Tokens ──────────────────────────────── */
+$bg-light: rgb(248, 250, 252);
+$bg-card: rgba(255, 255, 255, 0.9);
+$glass-bg: rgba(255, 255, 255, 0.85);
+$glass-border: rgba(0, 0, 0, 0.08);
+$accent: rgb(59, 130, 246);
+$text-main: rgb(15, 23, 42);
+$text-muted: rgb(100, 116, 139);
+
+$clr-overdue: #EF4444;
+$clr-plan: #3B82F6;
+$clr-ontrack: #10B981;
+$clr-review: #F59E0B;
+$clr-done: #6B7280;
+
+$radius: 16px;
+$radius-sm: 12px;
+$radius-pill: 13px;
+
+/* ─── Root Container ─────────────────────────────── */
+.taApp {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: $bg-light;
+  background-image: url('../../../assets/pattern-xl.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: $text-main;
+  min-height: 600px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+}
+
+/* ─── Header ─────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  min-height: 64px;
+  background: $bg-card;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid $glass-border;
+}
+
+.headerTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: $text-main;
+}
+
+.headerRight {
+  font-size: 13px;
+  color: $text-muted;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: $accent;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-right: 12px;
+  border-radius: 8px;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.15);
+  }
+}
+
+.headerWithBack {
+  display: flex;
+  align-items: center;
+}
+
+/* ─── Content Area ───────────────────────────────── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Glass Card ─────────────────────────────────── */
+.glass {
+  background: $glass-bg;
+  border: 1px solid $glass-border;
+  border-radius: $radius;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ─── KPI Row ────────────────────────────────────── */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.kpiTile {
+  @extend .glass;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.kpiNumber {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.kpiLabel {
+  font-size: 13px;
+  color: $text-muted;
+}
+
+.kpiAction {
+  font-size: 11px;
+  margin-top: auto;
+}
+
+/* ─── Action Row ─────────────────────────────────── */
+.actionRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.actionTile {
+  @extend .glass;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.actionTileBlue {
+  @extend .actionTile;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.actionTileGreen {
+  @extend .actionTile;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.actionTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.actionSub {
+  font-size: 12px;
+  color: $text-muted;
+}
+
+/* ─── Section Header ─────────────────────────────── */
+.sectionHeader {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-main;
+  margin: 0;
+}
+
+/* ─── Table / List Rows ──────────────────────────── */
+.listRow {
+  @extend .glass;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+  cursor: pointer;
+  border-radius: $radius-sm;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.listRowCol {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.listRowColFixed {
+  @extend .listRowCol;
+  flex: none;
+}
+
+.listRowBold {
+  @extend .listRowCol;
+  font-weight: 600;
+  color: $text-main;
+  width: 100px;
+  flex: none;
+}
+
+.listRowMuted {
+  @extend .listRowCol;
+  color: $text-muted;
+  font-size: 12px;
+}
+
+/* ─── Status Pill ────────────────────────────────── */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 12px;
+  border-radius: $radius-pill;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 100px;
+  height: 26px;
+  flex: none;
+}
+
+.statusOverdue {
+  @extend .statusPill;
+  background: rgba($clr-overdue, 0.15);
+  color: $clr-overdue;
+}
+
+.statusPlan {
+  @extend .statusPill;
+  background: rgba($clr-plan, 0.15);
+  color: $clr-plan;
+}
+
+.statusOntrack {
+  @extend .statusPill;
+  background: rgba($clr-ontrack, 0.15);
+  color: $clr-ontrack;
+}
+
+.statusReview {
+  @extend .statusPill;
+  background: rgba($clr-review, 0.15);
+  color: $clr-review;
+}
+
+.statusDone {
+  @extend .statusPill;
+  background: rgba($clr-done, 0.15);
+  color: $clr-done;
+}
+
+/* ─── NavBar ─────────────────────────────────────── */
+.navBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 56px;
+  min-height: 56px;
+  background: $bg-card;
+  border-top: 1px solid $glass-border;
+}
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 6px 16px;
+  border-radius: 12px;
+  background: none;
+  border: none;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.1);
+  }
+}
+
+.navIcon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.navLabel {
+  font-size: 10px;
+}
+
+.navActive {
+  color: $accent;
+}
+
+.navInactive {
+  color: $text-muted;
+}
+
+/* ─── Form ───────────────────────────────────────── */
+.formGroup {
+  @extend .glass;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.formGroupTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: $text-main;
+  margin: 0;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.formLabel {
+  font-size: 12px;
+  color: $text-muted;
+}
+
+.formInput {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid $glass-border;
+  border-radius: 10px;
+  color: $text-main;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+
+  &:focus {
+    border-color: $accent;
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+.formTextarea {
+  @extend .formInput;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.formSelect {
+  @extend .formInput;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(0,0,0,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input {
+    flex: 1;
+  }
+}
+
+.formUnit {
+  font-size: 13px;
+  color: $text-muted;
+  white-space: nowrap;
+}
+
+/* ─── Buttons ────────────────────────────────────── */
+.btnPrimary {
+  background: $accent;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: lighten($accent, 8%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btnSecondary {
+  @extend .btnPrimary;
+  background: transparent;
+  border: 1px solid $glass-border;
+  color: $text-muted;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+    box-shadow: none;
+  }
+}
+
+.btnSuccess {
+  @extend .btnPrimary;
+  background: $clr-ontrack;
+
+  &:hover {
+    background: lighten($clr-ontrack, 8%);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+}
+
+.btnWarning {
+  @extend .btnPrimary;
+  background: rgba($clr-review, 0.15);
+  color: $clr-review;
+
+  &:hover {
+    background: rgba($clr-review, 0.25);
+    box-shadow: none;
+  }
+}
+
+.btnRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: $bg-card;
+  border-top: 1px solid $glass-border;
+}
+
+/* ─── Detail Blocks ──────────────────────────────── */
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailLabel {
+  font-size: 11px;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detailValue {
+  font-size: 14px;
+  color: $text-main;
+}
+
+/* ─── Modal Overlay ──────────────────────────────── */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal {
+  background: $bg-card;
+  border: 1px solid $glass-border;
+  border-radius: 20px;
+  padding: 24px;
+  width: min(500px, calc(100vw - 48px));
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: slideUp 0.25s ease;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radioItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: $text-main;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  input[type="radio"] {
+    accent-color: $accent;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.modalBtnRow {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* ─── Filter Bar ─────────────────────────────────── */
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  @extend .formInput;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filterSelect {
+  @extend .formSelect;
+  width: 160px;
+}
+
+/* ─── Termin Card ────────────────────────────────── */
+.terminCard {
+  @extend .glass;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.terminCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.terminCardMeta {
+  font-size: 12px;
+  color: $text-muted;
+}
+
+.terminCardAction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dateInput {
+  @extend .formInput;
+  width: 160px;
+}
+
+/* ─── Priority Badge ─────────────────────────────── */
+.prioHigh {
+  color: $clr-overdue;
+  font-weight: 600;
+}
+
+.prioMedium {
+  color: $clr-review;
+}
+
+.prioLow {
+  color: $text-muted;
+}
+
+/* ─── Loading ────────────────────────────────────── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: $text-muted;
+  font-size: 14px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid $glass-border;
+  border-top-color: $accent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 12px;
+}
+
+/* ─── Empty State ────────────────────────────────── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: $text-muted;
+  font-size: 14px;
+  gap: 8px;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+/* ─── Animations ─────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Notification Toast ─────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: $bg-card;
+  border: 1px solid $glass-border;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 14px;
+  color: $text-main;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 2000;
+  animation: slideUp 0.3s ease, fadeOut 0.3s ease 2.7s;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.toastSuccess {
+  @extend .toast;
+  border-color: rgba($clr-ontrack, 0.5);
+}
+
+.toastError {
+  @extend .toast;
+  border-color: rgba($clr-overdue, 0.5);
+}
