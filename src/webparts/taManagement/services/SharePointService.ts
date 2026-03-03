@@ -6,10 +6,13 @@ import '@pnp/sp/files'; // Added import for getFileByServerRelativeUrl / getFile
 import '@pnp/sp/site-users/web';
 import '@pnp/sp/profiles';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
-import { ITaItem, IProjektItem, INewTaForm, IKpiData } from '../models/types';
+import { ITaItem, IProjektItem, INewTaForm, IKpiData, IKategorieItem, IKundenAnwendungItem } from '../models/types';
 
 const TA_LIST = 'Technische_Anfragen';
 const PROJEKT_LIST = 'Projekt-Liste';
+const KATEGORIEN_LIST = 'TA_Kategorien';
+const KUNDEN_ANWENDUNGEN_LIST = 'TA_Kunden_Anwendungen';
+const CONFIG_LIST = 'TA_Config';
 
 function pad2(n: number): string {
     return n < 10 ? '0' + n : '' + n;
@@ -146,11 +149,16 @@ export class SharePointService {
             field_11: form.anwendung,
             field_12: form.material,
             field_16: form.kategorie,
+            field_13: form.prioritaet ? parseInt(form.prioritaet, 10) : null, // Assuming field_13 is Priority
             field_14: !isNaN(potVal as any) ? potVal : null,
             field_15: !isNaN(chanceVal as any) ? chanceVal : null,
             ErstellerId: currentUser.Id,
             VerantwortlicherId: form.verantwortlicherId || null,
             field_17: form.budget,
+            Zielpreis: !isNaN(parseFloat(form.zielpreis)) ? parseFloat(form.zielpreis) : null, // NEW Field
+            SOP: form.sop,                                // NEW Field
+            SegCode: form.segCode,                        // NEW Field
+            AntwortIn: form.antwortIn,                    // NEW Field
             field_5: wunschIso || undefined,
             field_4: dateStr,
             Status: 'Termin planen'
@@ -191,13 +199,16 @@ export class SharePointService {
         return dateStr;
     }
 
-    public async setTermin(id: number, termin: string, verantwortlicherId?: number): Promise<void> {
+    public async setTermin(id: number, termin: string, verantwortlicherId?: number, delayReason?: string): Promise<void> {
         const updateData: any = {
             field_6: this.convertToIso(termin),
             Status: 'läuft planmäßig'
         };
         if (verantwortlicherId) {
             updateData.VerantwortlicherId = verantwortlicherId;
+        }
+        if (delayReason) {
+            updateData.field_21 = delayReason;
         }
         await this.updateTA(id, updateData);
     }
@@ -290,22 +301,59 @@ export class SharePointService {
                 return result;
             };
 
-            // Zeile 0 ist der Header ("Kontakt";"Kunde";...). Wir starten bei i = 1.
+            // Zeile 0 ist der Header. Wir parsen diese, um die Spalten dynamisch zu finden.
+            const headers = splitCsvRow(lines[0], ';').map(h => h.replace(/"/g, '').trim().toLowerCase());
+
+            const getColIdx = (keywords: string[], defaultIdx: number) => {
+                const found = headers.findIndex(h => keywords.some(k => h.includes(k)));
+                return found !== -1 ? found : defaultIdx;
+            };
+
+            const idxKunde = getColIdx(['kunde'], 1);
+            const idxName = getColIdx(['name'], 2);
+            // Default 4 corresponds to VBA Column 5 (E) which was VproNumber usually
+            const idxVpro = getColIdx(['vpro', 'projektnummer', 'anfrage-nr', 'kontakt-nr', 'kontaktnr'], 4);
+            const idxSelektion = getColIdx(['selektion'], 6);
+            // Fallback for Bezeichnung if Selektion not found? Actually they use both.
+            // Let's ensure idxSelektion is used for the dropdown base!
+            const idxPotential = getColIdx(['potential', 'potenzial'], 8);
+            const idxChance = getColIdx(['chance'], 9);
+            const idxBudget = getColIdx(['budget'], 10);
+            const idxEndkunde = getColIdx(['endkunde'], 13);
+            const idxMaterial = getColIdx(['material'], 16);
+            const idxZielVk = getColIdx(['ziel vk', 'zielpreis'], 17);
+            const idxSop = getColIdx(['sop', 'beginndat'], 20);
+
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
                 const cols = splitCsvRow(line, ';');
                 if (cols.length >= 8) {
+
+                    // Helper to safely parse German numbers (e.g. "5.000,50" -> 5000.50)
+                    const parseNum = (val: string) => {
+                        if (!val) return undefined;
+                        // Remove quotes, remove thousand-separator dots, replace comma with dot
+                        const clean = val.replace(/"/g, '').replace(/\./g, '').replace(',', '.').trim();
+                        if (clean.length === 0) return undefined;
+                        const parsed = parseFloat(clean);
+                        return isNaN(parsed) ? undefined : parsed;
+                    };
+
                     projekte.push({
-                        ID: parseInt(cols[0].replace(/"/g, '').trim()) || i, // "Kontakt" als ID
-                        Title: cols[0].replace(/"/g, '').trim(),      // "Kontakt" 
-                        field_1: cols[1].replace(/"/g, '').trim(),    // "Kunde"
-                        field_2: cols[2].replace(/"/g, '').trim(),    // "Name"
-                        field_3: cols[3].replace(/"/g, '').trim(),    // "Name 2"
-                        field_7: cols[7].replace(/"/g, '').trim(),    // "Bezeichnung"
-                        field_8: parseFloat(cols[8].replace(/"/g, '').replace(',', '.')) || 0, // "Potential"
-                        field_13: cols[13] ? cols[13].replace(/"/g, '').trim() : '' // "Endkunde"
+                        ID: parseInt(cols[0].replace(/"/g, '').trim()) || i,
+                        Title: cols[idxVpro] ? cols[idxVpro].replace(/"/g, '').trim() : '', // VproNumber / Kontakt-Nr
+                        field_1: cols[idxKunde] ? cols[idxKunde].replace(/"/g, '').trim() : '',
+                        field_2: cols[idxName] ? cols[idxName].replace(/"/g, '').trim() : '',
+                        field_7: cols[idxSelektion] ? cols[idxSelektion].replace(/"/g, '').trim() : '', // Selektion is our dropdown value
+                        field_8: parseNum(cols[idxPotential]) || 0,
+                        field_10: parseNum(cols[idxChance]),
+                        field_11: parseNum(cols[idxBudget]),
+                        field_13: cols[idxEndkunde] ? cols[idxEndkunde].replace(/"/g, '').trim() : '',
+                        field_16: cols[idxMaterial] ? cols[idxMaterial].replace(/"/g, '').trim() : undefined,
+                        field_18: parseNum(cols[idxZielVk]),
+                        field_21: cols[idxSop] ? cols[idxSop].replace(/"/g, '').trim() : undefined
                     });
                 }
             }
@@ -326,5 +374,79 @@ export class SharePointService {
             if (p.field_1) kundenSet.add(p.field_1);
         });
         return Array.from(kundenSet).sort();
+    }
+
+    // ─── Hilfstabellen (Kategorien & Kunden-Anwendungen) ─────────
+
+    public async getKategorien(): Promise<IKategorieItem[]> {
+        return sp.web.lists.getByTitle(KATEGORIEN_LIST).items
+            .select('ID', 'Title')
+            .top(500)
+            .orderBy('Title', true)
+            .get();
+    }
+
+    public async addKategorie(title: string): Promise<void> {
+        await sp.web.lists.getByTitle(KATEGORIEN_LIST).items.add({
+            Title: title
+        });
+    }
+
+    public async deleteKategorie(id: number): Promise<void> {
+        await sp.web.lists.getByTitle(KATEGORIEN_LIST).items.getById(id).delete();
+    }
+
+    public async getKundenAnwendungen(kunde?: string): Promise<IKundenAnwendungItem[]> {
+        let query = sp.web.lists.getByTitle(KUNDEN_ANWENDUNGEN_LIST).items
+            .select('ID', 'Title', 'Anwendung')
+            .top(2000)
+            .orderBy('Title', true);
+
+        if (kunde) {
+            query = query.filter(`Title eq '${kunde.replace(/'/g, "''")}'`);
+        }
+
+        return query.get();
+    }
+
+    public async addKundenAnwendung(kunde: string, anwendung: string): Promise<void> {
+        await sp.web.lists.getByTitle(KUNDEN_ANWENDUNGEN_LIST).items.add({
+            Title: kunde,
+            Anwendung: anwendung
+        });
+    }
+
+    public async deleteKundenAnwendung(id: number): Promise<void> {
+        await sp.web.lists.getByTitle(KUNDEN_ANWENDUNGEN_LIST).items.getById(id).delete();
+    }
+
+    // ─── Config ─────────────────────────────────────────
+
+    public async getConfigValue(key: string, defaultValue: string = ''): Promise<string> {
+        try {
+            const items = await sp.web.lists.getByTitle(CONFIG_LIST).items
+                .filter(`Title eq '${key}'`)
+                .select('Value')
+                .top(1)
+                .get();
+
+            if (items.length > 0) {
+                return items[0].Value;
+            }
+        } catch (e) {
+            console.warn(`Could not read config key ${key}. Using default.`, e);
+        }
+        return defaultValue;
+    }
+
+    public async setConfigValue(key: string, value: string): Promise<void> {
+        const list = sp.web.lists.getByTitle(CONFIG_LIST);
+        const existing = await list.items.filter(`Title eq '${key}'`).select('ID').top(1).get();
+
+        if (existing.length > 0) {
+            await list.items.getById(existing[0].ID).update({ Value: value });
+        } else {
+            await list.items.add({ Title: key, Value: value });
+        }
     }
 }

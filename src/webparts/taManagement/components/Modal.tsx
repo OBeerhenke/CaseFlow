@@ -60,7 +60,7 @@ export default class Modal extends React.Component<IModalProps, IModalState> {
 
                     <div className={styles.modalBtnRow}>
                         <button className={styles.btnSecondary} onClick={this.props.onClose}>
-                            ✖ Abbrechen
+                            Abbrechen
                         </button>
                         <button
                             className={styles.btnPrimary}
@@ -72,7 +72,7 @@ export default class Modal extends React.Component<IModalProps, IModalState> {
                                 this.setState({ neuerTermin: '', selectedGrund: '' });
                             }}
                         >
-                            ✓ Übernehmen
+                            Übernehmen
                         </button>
                     </div>
                 </div>

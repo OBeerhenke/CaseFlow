@@ -9,6 +9,7 @@ import NeueTa from './NeueTa';
 import TerminPlanen from './TerminPlanen';
 import TaDetail from './TaDetail';
 import AlleTas from './AlleTas';
+import Settings from './Settings';
 
 interface IAppState {
   currentView: AppView;
@@ -107,9 +108,9 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
     }
   }
 
-  private handleSetTermin = async (id: number, termin: string, verantwortlicherId?: number): Promise<void> => {
+  private handleSetTermin = async (id: number, termin: string, verantwortlicherId?: number, delayReason?: string): Promise<void> => {
     try {
-      await this.svc.setTermin(id, termin, verantwortlicherId);
+      await this.svc.setTermin(id, termin, verantwortlicherId, delayReason);
       this.showToast('Termin erfolgreich geplant');
       await this.loadData();
       if (this.state.selectedTaId === id) {
@@ -177,10 +178,8 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
         return (
           <TerminPlanen
             tas={tas}
-            onSetTermin={this.handleSetTermin}
+            onSelectTa={this.selectTa}
             onBack={this.goBack}
-            onSearchUsers={async (q) => await this.svc.searchUsers(q)}
-            onEnsureUser={async (login) => await this.svc.ensureUser(login)}
           />
         );
 
@@ -202,6 +201,9 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
             onBack={this.goBack}
             onSave={this.handleSaveTa}
             onVerschieben={this.handleVerschieben}
+            onSetTermin={this.handleSetTermin}
+            onSearchUsers={async (q) => await this.svc.searchUsers(q)}
+            onEnsureUser={async (login) => await this.svc.ensureUser(login)}
           />
         );
       }
@@ -215,6 +217,16 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
             onBack={this.goBack}
           />
         );
+
+      case AppView.Settings: {
+        const kundenList = Array.from(new Set(projekte.map(p => p.field_2 || p.field_1).filter(Boolean))) as string[];
+        return (
+          <Settings
+            onBack={this.goBack}
+            kundenList={kundenList}
+          />
+        );
+      }
 
       default:
         return undefined;

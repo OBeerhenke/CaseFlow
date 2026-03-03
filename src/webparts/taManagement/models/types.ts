@@ -28,6 +28,17 @@ export interface ITaItem {
   Modified?: string;
 }
 
+export interface IKategorieItem {
+  ID: number;
+  Title: string; // Kategorie
+}
+
+export interface IKundenAnwendungItem {
+  ID: number;
+  Title: string; // Kunde
+  Anwendung: string;
+}
+
 /** SharePoint Projekt-Liste item */
 export interface IProjektItem {
   ID: number;
@@ -37,7 +48,12 @@ export interface IProjektItem {
   field_3?: string;          // Name 2
   field_7?: string;          // Bezeichnung (Anwendung)
   field_8?: number;          // Potential
+  field_10?: number;         // Chance (Anfrage)
+  field_11?: number;         // Budget
   field_13?: string;         // Endkunde
+  field_16?: string;         // Material
+  field_18?: number;         // Ziel VK (Preis)
+  field_21?: string;         // SOP (BeginnDat)
 }
 
 /** New TA form data */
@@ -54,6 +70,11 @@ export interface INewTaForm {
   budget: string;
   wunschtermin: string;
   verantwortlicherId?: number | null;
+  zielpreis: string;
+  sop: string;
+  segCode: string;
+  antwortIn: "Deutsch" | "Englisch";
+  prioritaet: string;
 }
 
 /** Status constants */
@@ -84,13 +105,24 @@ export const VERSCHIEBUNG_GRUENDE = [
   'Musterungstermin verschoben'
 ];
 
+/** Delay reasons for initial planning */
+export const INITIAL_DELAY_REASONS = [
+  'Rückfragen',
+  'Selbstorganisation',
+  'Komplexität',
+  'Kapazität der Abteilung',
+  'kein Projektbudget vorhanden',
+  'Technische Probleme(Nur TA Liste)'
+];
+
 /** View enum for navigation */
 export enum AppView {
   Dashboard = 'dashboard',
   NeueTa = 'neue-ta',
   TerminPlanen = 'termin-planen',
   TaDetail = 'ta-detail',
-  AlleTas = 'alle-tas'
+  AlleTas = 'alle-tas',
+  Settings = 'settings'
 }
 
 /** KPI data */

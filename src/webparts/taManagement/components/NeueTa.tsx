@@ -23,6 +23,7 @@ interface INeueTaState extends INewTaForm {
     verantwortlicherLoginName: string | null;
     verantwortlicherSuggestions: any[];
     showVerantwortlicherSuggestions: boolean;
+    availableKategorien: { ID: number; Title: string }[];
 }
 
 export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> {
@@ -51,6 +52,11 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
             budget: '',
             wunschtermin: '',
             verantwortlicherId: null,
+            zielpreis: '',
+            sop: '',
+            segCode: '',
+            antwortIn: 'Deutsch',
+            prioritaet: '',
             saving: false,
             kundenList,
             filteredKunden: [],
@@ -62,10 +68,31 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
             verantwortlicherLoginName: null,
             verantwortlicherSuggestions: [],
             showVerantwortlicherSuggestions: false,
+            availableKategorien: []
         };
     }
 
-    private handleKundeChange = (value: string): void => {
+    public async componentDidMount(): Promise<void> {
+        try {
+            // Load Kategorien dynamically from SharePoint list instead of hardcoded options
+            const { SharePointService } = await import('../services/SharePointService');
+            const kat = await SharePointService.instance.getKategorien();
+            this.setState({ availableKategorien: kat });
+        } catch (err) {
+            console.error("Error loading Kategorien:", err);
+            // Fallback to hardcoded ones if list doesn't exist or fails
+            this.setState({
+                availableKategorien: [
+                    { ID: 1, Title: 'BM' },
+                    { ID: 2, Title: 'PM' },
+                    { ID: 3, Title: 'TA' },
+                    { ID: 4, Title: 'MM' }
+                ]
+            });
+        }
+    }
+
+    private handleKundeChange = async (value: string): Promise<void> => {
         const filtered = this.state.kundenList.filter(k =>
             k.toLowerCase().includes(value.toLowerCase())
         );
@@ -91,21 +118,65 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
             this.setState({
                 endkunde: projekteForKunde[0].field_13 || '',
                 kontaktNr: projekteForKunde[0].Title || '',
-                anwendungenList,
-                filteredAnwendungen: [],
-                showAnwendungenSuggestions: false,
             });
         } else {
+            this.setState({
+                endkunde: '',
+                kontaktNr: '',
+            });
+        }
+
+        // Fetch "Anwendungen" for this specific customer from the new Helper Table
+        this.fetchAnwendungenForKunde(value).catch(console.error);
+    }
+
+    private async fetchAnwendungenForKunde(kunde: string): Promise<void> {
+        if (!kunde) {
             this.setState({
                 anwendungenList: [],
                 filteredAnwendungen: [],
                 showAnwendungenSuggestions: false,
             });
+            return;
+        }
+
+        try {
+            // Find all projects that match this customer (either field_2 or field_1 matches)
+            const projekteForKunde = this.props.projekte.filter(p =>
+                (p.field_2 && p.field_2.trim() === kunde.trim()) ||
+                (p.field_1 && p.field_1.trim() === kunde.trim())
+            );
+
+            // Replicate VBA logic: Dropdown string is "Bezeichnung VproNumber"
+            // where VproNumber is Title (padded to at least 4 chars)
+            const anwendungenSet = new Set<string>();
+            projekteForKunde.forEach(p => {
+                if (p.field_7 && p.Title) {
+                    let vpro = p.Title;
+                    // Pad to 4 digits if it's purely numeric and short, mimicking VBA string length logic
+                    if (!isNaN(parseInt(vpro)) && vpro.length < 4) {
+                        vpro = ('0000' + vpro).slice(-4);
+                    }
+                    anwendungenSet.add(`${p.field_7} ${vpro}`);
+                } else if (p.field_7) {
+                    anwendungenSet.add(p.field_7);
+                }
+            });
+
+            const anwendungenList = Array.from(anwendungenSet).sort();
+
+            this.setState({
+                anwendungenList,
+                filteredAnwendungen: [],
+                showAnwendungenSuggestions: false,
+            });
+        } catch (e) {
+            console.error("Error generating Anwendungen for Kunde from Projektliste:", e);
         }
     }
 
     private selectKunde = (kunde: string): void => {
-        this.handleKundeChange(kunde);
+        this.handleKundeChange(kunde).catch(console.error);
         this.setState({ showKundenSuggestions: false });
     }
 
@@ -120,18 +191,32 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
         });
 
         // Auto fill specific application properties if found for the selected customer name and application
-        const projekt = this.props.projekte.find(p =>
-            ((p.field_2 && p.field_2.trim() === this.state.kunde.trim()) ||
-                (p.field_1 && p.field_1.trim() === this.state.kunde.trim())) &&
-            p.field_7 === value
-        );
+        const projekt = this.props.projekte.find(p => {
+            const isKundeMatch = ((p.field_2 && p.field_2.trim() === this.state.kunde.trim()) ||
+                (p.field_1 && p.field_1.trim() === this.state.kunde.trim()));
+
+            if (!isKundeMatch) return false;
+
+            // Recreate the combo string to see if it matches the selected value
+            let vpro = p.Title || '';
+            if (!isNaN(parseInt(vpro)) && vpro.length < 4) {
+                vpro = ('0000' + vpro).slice(-4);
+            }
+            const comboString = p.field_7 ? `${p.field_7} ${vpro}`.trim() : '';
+            return comboString === value || p.field_7 === value;
+        });
+
         if (projekt) {
             this.setState({
-                // We don't overwrite material because we don't have it in IProjektItem currently, 
-                // but we can auto-fill potential
                 potenzial: projekt.field_8 ? projekt.field_8.toString() : this.state.potenzial,
+                chance: projekt.field_10 !== undefined ? projekt.field_10.toString() : this.state.chance, // Chance is already 10, no need to multiply
+                budget: projekt.field_11 !== undefined ? projekt.field_11.toString() : this.state.budget,
+                material: projekt.field_16 || this.state.material,
                 endkunde: projekt.field_13 || this.state.endkunde,
                 kontaktNr: projekt.Title || this.state.kontaktNr,
+                zielpreis: projekt.field_18 !== undefined ? projekt.field_18.toString() : this.state.zielpreis,
+                sop: projekt.field_21 || this.state.sop,
+                segCode: (projekt as any).field_12 || this.state.segCode, // Not mapped in typings yet but parsed as cols[idxSegCode]
                 showAnwendungenSuggestions: false,
             });
         }
@@ -192,7 +277,12 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 chance: this.state.chance,
                 budget: this.state.budget,
                 wunschtermin: this.state.wunschtermin,
-                verantwortlicherId: finalVerantwortlicherId
+                verantwortlicherId: finalVerantwortlicherId,
+                zielpreis: this.state.zielpreis,
+                sop: this.state.sop,
+                segCode: this.state.segCode,
+                antwortIn: this.state.antwortIn,
+                prioritaet: this.state.prioritaet
             });
         } finally {
             this.setState({ saving: false });
@@ -200,7 +290,16 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
     }
 
     public render(): React.ReactElement<INeueTaProps> {
-        const { saving } = this.state;
+        const { saving, kunde, wunschtermin } = this.state;
+
+        const isFormValid = !!kunde && !!wunschtermin;
+        let missingFieldsText = '';
+        if (!isFormValid) {
+            const missing = [];
+            if (!kunde) missing.push('Kunde');
+            if (!wunschtermin) missing.push('Wunschtermin');
+            missingFieldsText = `Bitte fülle noch folgende Pflichtfelder aus: ${missing.join(', ')}`;
+        }
 
         return (
             <>
@@ -372,15 +471,14 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                 onChange={(e) => this.setState({ kategorie: e.target.value })}
                             >
                                 <option value="">Auswählen...</option>
-                                <option value="BM">BM</option>
-                                <option value="PM">PM</option>
-                                <option value="TA">TA</option>
-                                <option value="MM">MM</option>
+                                {this.state.availableKategorien.map(kat => (
+                                    <option key={kat.ID} value={kat.Title}>{kat.Title}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
 
-                    {/* Kaufmännisch */}
+                    {/* Kaufmännisch & Termin */}
                     <div className={styles.formGroup} style={{ position: 'relative', zIndex: 8 }}>
                         <h4 className={styles.formGroupTitle}>Kaufmännisch & Termin</h4>
 
@@ -407,8 +505,21 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                         onChange={(e) => this.setState({ chance: e.target.value })}
                                     />
                                     <span className={styles.formUnit}>%</span>
+
+                                    <label className={styles.formLabel} style={{ marginLeft: '16px', marginRight: '8px' }}>Zielpreis</label>
+                                    <input
+                                        type="number"
+                                        className={styles.formInput}
+                                        value={this.state.zielpreis}
+                                        onChange={(e) => this.setState({ zielpreis: e.target.value })}
+                                        style={{ width: '100px' }}
+                                    />
+                                    <span className={styles.formUnit}>€</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div className={styles.formRow}>
                             <div className={styles.formField}>
                                 <label className={styles.formLabel}>Budget</label>
                                 <div className={styles.formInputGroup}>
@@ -419,51 +530,119 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                         onChange={(e) => this.setState({ budget: e.target.value })}
                                     />
                                     <span className={styles.formUnit}>€</span>
+
+                                    <label className={styles.formLabel} style={{ marginLeft: '16px', marginRight: '8px' }}>SOP</label>
+                                    <input
+                                        type="text"
+                                        className={styles.formInput}
+                                        value={this.state.sop}
+                                        onChange={(e) => this.setState({ sop: e.target.value })}
+                                        style={{ width: '120px' }}
+                                    />
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Termine */}
-                    <div className={styles.formGroup}>
-                        <h4 className={styles.formGroupTitle}>Termine</h4>
-                        <div className={styles.formField}>
-                            <label className={styles.formLabel}>Wunschtermin</label>
-                            {(() => {
-                                const wtParts = this.state.wunschtermin ? this.state.wunschtermin.split('.') : [];
-                                const wtIso = wtParts.length === 3 ? `${wtParts[2]}-${wtParts[1]}-${wtParts[0]}` : '';
-                                return (
+                        <div className={styles.formRow}>
+                            <div className={styles.formField}>
+                                <label className={styles.formLabel}>Antwort in:</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', height: '38px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '14px', color: '#1e293b' }}>
+                                        <input
+                                            type="radio"
+                                            name="antwortIn"
+                                            value="Deutsch"
+                                            checked={this.state.antwortIn === 'Deutsch'}
+                                            onChange={() => this.setState({ antwortIn: 'Deutsch' })}
+                                        />
+                                        Deutsch
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '14px', color: '#1e293b' }}>
+                                        <input
+                                            type="radio"
+                                            name="antwortIn"
+                                            value="Englisch"
+                                            checked={this.state.antwortIn === 'Englisch'}
+                                            onChange={() => this.setState({ antwortIn: 'Englisch' })}
+                                        />
+                                        Englisch
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className={styles.formField}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '22px' }}>
+                                    <label className={styles.formLabel} style={{ marginLeft: '16px', marginRight: '8px', marginBottom: 0 }}>SegCode</label>
                                     <input
-                                        type="date"
-                                        className={styles.dateInput}
-                                        value={wtIso}
-                                        onChange={(e) => {
-                                            const parts = e.target.value.split('-');
-                                            if (parts.length === 3) {
-                                                this.setState({ wunschtermin: `${parts[2]}.${parts[1]}.${parts[0]}` });
-                                            } else {
-                                                this.setState({ wunschtermin: '' });
-                                            }
-                                        }}
+                                        type="text"
+                                        className={styles.formInput}
+                                        value={this.state.segCode}
+                                        onChange={(e) => this.setState({ segCode: e.target.value })}
+                                        style={{ width: '100px' }}
                                     />
-                                );
-                            })()}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.formRow}>
+                            <div className={styles.formField}>
+                                <label className={styles.formLabel}>Wunschtermin <span style={{ color: '#ef4444' }}>*</span></label>
+                                {(() => {
+                                    const wtParts = this.state.wunschtermin ? this.state.wunschtermin.split('.') : [];
+                                    const wtIso = wtParts.length === 3 ? `${wtParts[2]}-${wtParts[1]}-${wtParts[0]}` : '';
+                                    return (
+                                        <input
+                                            type="date"
+                                            className={styles.dateInput}
+                                            value={wtIso}
+                                            onChange={(e) => {
+                                                const parts = e.target.value.split('-');
+                                                if (parts.length === 3) {
+                                                    this.setState({ wunschtermin: `${parts[2]}.${parts[1]}.${parts[0]}` });
+                                                } else {
+                                                    this.setState({ wunschtermin: '' });
+                                                }
+                                            }}
+                                        />
+                                    );
+                                })()}
+                            </div>
+                            <div className={styles.formField}>
+                                <label className={styles.formLabel}>Priorität</label>
+                                <select
+                                    className={styles.formSelect}
+                                    value={this.state.prioritaet}
+                                    onChange={(e) => this.setState({ prioritaet: e.target.value })}
+                                >
+                                    <option value="">Auswählen...</option>
+                                    <option value="1">Hoch (1)</option>
+                                    <option value="2">Mittel (2)</option>
+                                    <option value="3">Niedrig (3)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className={styles.btnRow}>
-                    <button className={styles.btnSecondary} onClick={this.props.onBack}>
-                        ✖ Abbrechen
-                    </button>
-                    <button
-                        className={styles.btnPrimary}
-                        onClick={this.handleSubmit}
-                        disabled={!this.state.kunde || saving}
-                    >
-                        {saving ? '⏳ Speichere...' : '💾 TA anlegen'}
-                    </button>
+                <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-end' }}>
+                    {!isFormValid && (
+                        <div style={{ color: '#ef4444', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>⚠️</span> {missingFieldsText}
+                        </div>
+                    )}
+                    <div className={styles.btnRow} style={{ marginTop: 0 }}>
+                        <button className={styles.btnSecondary} onClick={this.props.onBack}>
+                            Abbrechen
+                        </button>
+                        <button
+                            className={styles.btnPrimary}
+                            onClick={this.handleSubmit}
+                            disabled={!isFormValid || saving}
+                        >
+                            {saving ? 'Speichere...' : 'TA anlegen'}
+                        </button>
+                    </div>
                 </div>
             </>
         );
