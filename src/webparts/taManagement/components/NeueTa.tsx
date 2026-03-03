@@ -635,7 +635,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 </div>
 
                 {/* Footer Center Aligned */}
-                <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ paddingBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
                     {!isFormValid && (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 20px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#DC2626', fontSize: '13px', fontWeight: 500, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                             <span>⚠️</span> {missingFieldsText}
