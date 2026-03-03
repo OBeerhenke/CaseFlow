@@ -625,13 +625,16 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 </div>
 
                 {/* Footer */}
-                <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-end' }}>
-                    {!isFormValid && (
-                        <div style={{ color: '#ef4444', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span>⚠️</span> {missingFieldsText}
-                        </div>
-                    )}
-                    <div className={styles.btnRow} style={{ marginTop: 0 }}>
+                <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                    <div style={{ flex: 1 }}>
+                        {!isFormValid && (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#DC2626', fontSize: '13px', fontWeight: 500 }}>
+                                <span>⚠️</span> {missingFieldsText}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={styles.btnRow} style={{ marginTop: 0, padding: 0, background: 'transparent', borderTop: 'none' }}>
                         <button className={styles.btnSecondary} onClick={this.props.onBack}>
                             Abbrechen
                         </button>
