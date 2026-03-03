@@ -347,6 +347,7 @@ export class SharePointService {
             const idxMaterial = getColIdx(['material'], 16);
             const idxZielVk = getColIdx(['ziel vk', 'zielpreis'], 17);
             const idxSop = getColIdx(['sop', 'beginndat'], 20);
+            const idxSegCode = getColIdx(['segcode', 'segment', 'seg'], 21); // Assuming it's often close to SOP
 
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
@@ -377,7 +378,8 @@ export class SharePointService {
                         field_13: cols[idxEndkunde] ? cols[idxEndkunde].replace(/"/g, '').trim() : '',
                         field_16: cols[idxMaterial] ? cols[idxMaterial].replace(/"/g, '').trim() : undefined,
                         field_18: parseNum(cols[idxZielVk]),
-                        field_21: cols[idxSop] ? cols[idxSop].replace(/"/g, '').trim() : undefined
+                        field_21: cols[idxSop] ? cols[idxSop].replace(/"/g, '').trim() : undefined,
+                        field_12: cols[idxSegCode] ? cols[idxSegCode].replace(/"/g, '').trim() : undefined
                     });
                 }
             }

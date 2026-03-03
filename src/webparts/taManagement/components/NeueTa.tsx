@@ -216,7 +216,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 kontaktNr: projekt.Title || this.state.kontaktNr,
                 zielpreis: projekt.field_18 !== undefined ? projekt.field_18.toString() : this.state.zielpreis,
                 sop: projekt.field_21 || this.state.sop,
-                segCode: (projekt as any).field_12 || this.state.segCode, // Not mapped in typings yet but parsed as cols[idxSegCode]
+                segCode: projekt.field_12 || this.state.segCode,
                 showAnwendungenSuggestions: false,
             });
         }

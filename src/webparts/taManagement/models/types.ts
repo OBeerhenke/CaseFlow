@@ -50,6 +50,7 @@ export interface IProjektItem {
   field_8?: number;          // Potential
   field_10?: number;         // Chance (Anfrage)
   field_11?: number;         // Budget
+  field_12?: string;         // SegCode
   field_13?: string;         // Endkunde
   field_16?: string;         // Material
   field_18?: number;         // Ziel VK (Preis)
