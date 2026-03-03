@@ -478,10 +478,11 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                         </div>
                     </div>
 
-                    {/* Kaufmännisch & Termin */}
+                    {/* Projektdetails & Planung */}
                     <div className={styles.formGroup} style={{ position: 'relative', zIndex: 8 }}>
-                        <h4 className={styles.formGroupTitle}>Kaufmännisch & Termin</h4>
+                        <h4 className={styles.formGroupTitle}>Projektdetails & Planung</h4>
 
+                        {/* Zeile 1: Potenziale & Finanzen */}
                         <div className={styles.formRow}>
                             <div className={styles.formField}>
                                 <label className={styles.formLabel}>Potenzial</label>
@@ -491,8 +492,9 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                         className={styles.formInput}
                                         value={this.state.potenzial}
                                         onChange={(e) => this.setState({ potenzial: e.target.value })}
+                                        style={{ width: '100%' }}
                                     />
-                                    <span className={styles.formUnit}>jato</span>
+                                    <span className={styles.formUnit} style={{ width: '30px' }}>jato</span>
                                 </div>
                             </div>
                             <div className={styles.formField}>
@@ -503,23 +505,27 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                         className={styles.formInput}
                                         value={this.state.chance}
                                         onChange={(e) => this.setState({ chance: e.target.value })}
+                                        style={{ width: '100%' }}
                                     />
-                                    <span className={styles.formUnit}>%</span>
-
-                                    <label className={styles.formLabel} style={{ marginLeft: '16px', marginRight: '8px' }}>Zielpreis</label>
-                                    <input
-                                        type="number"
-                                        className={styles.formInput}
-                                        value={this.state.zielpreis}
-                                        onChange={(e) => this.setState({ zielpreis: e.target.value })}
-                                        style={{ width: '100px' }}
-                                    />
-                                    <span className={styles.formUnit}>€</span>
+                                    <span className={styles.formUnit} style={{ width: '30px' }}>%</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className={styles.formRow}>
+                            <div className={styles.formField}>
+                                <label className={styles.formLabel}>Zielpreis</label>
+                                <div className={styles.formInputGroup}>
+                                    <input
+                                        type="number"
+                                        className={styles.formInput}
+                                        value={this.state.zielpreis}
+                                        onChange={(e) => this.setState({ zielpreis: e.target.value })}
+                                        style={{ width: '100%' }}
+                                    />
+                                    <span className={styles.formUnit} style={{ width: '30px' }}>€</span>
+                                </div>
+                            </div>
                             <div className={styles.formField}>
                                 <label className={styles.formLabel}>Budget</label>
                                 <div className={styles.formInputGroup}>
@@ -528,59 +534,32 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                         className={styles.formInput}
                                         value={this.state.budget}
                                         onChange={(e) => this.setState({ budget: e.target.value })}
+                                        style={{ width: '100%' }}
                                     />
-                                    <span className={styles.formUnit}>€</span>
-
-                                    <label className={styles.formLabel} style={{ marginLeft: '16px', marginRight: '8px' }}>SOP</label>
-                                    <input
-                                        type="text"
-                                        className={styles.formInput}
-                                        value={this.state.sop}
-                                        onChange={(e) => this.setState({ sop: e.target.value })}
-                                        style={{ width: '120px' }}
-                                    />
+                                    <span className={styles.formUnit} style={{ width: '30px' }}>€</span>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Zeile 2: Termine & Orga */}
                         <div className={styles.formRow}>
                             <div className={styles.formField}>
-                                <label className={styles.formLabel}>Antwort in:</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', height: '38px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '14px', color: '#1e293b' }}>
-                                        <input
-                                            type="radio"
-                                            name="antwortIn"
-                                            value="Deutsch"
-                                            checked={this.state.antwortIn === 'Deutsch'}
-                                            onChange={() => this.setState({ antwortIn: 'Deutsch' })}
-                                        />
-                                        Deutsch
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '14px', color: '#1e293b' }}>
-                                        <input
-                                            type="radio"
-                                            name="antwortIn"
-                                            value="Englisch"
-                                            checked={this.state.antwortIn === 'Englisch'}
-                                            onChange={() => this.setState({ antwortIn: 'Englisch' })}
-                                        />
-                                        Englisch
-                                    </label>
-                                </div>
+                                <label className={styles.formLabel}>SOP</label>
+                                <input
+                                    type="text"
+                                    className={styles.formInput}
+                                    value={this.state.sop}
+                                    onChange={(e) => this.setState({ sop: e.target.value })}
+                                />
                             </div>
-
                             <div className={styles.formField}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '22px' }}>
-                                    <label className={styles.formLabel} style={{ marginLeft: '16px', marginRight: '8px', marginBottom: 0 }}>SegCode</label>
-                                    <input
-                                        type="text"
-                                        className={styles.formInput}
-                                        value={this.state.segCode}
-                                        onChange={(e) => this.setState({ segCode: e.target.value })}
-                                        style={{ width: '100px' }}
-                                    />
-                                </div>
+                                <label className={styles.formLabel}>SegCode</label>
+                                <input
+                                    type="text"
+                                    className={styles.formInput}
+                                    value={this.state.segCode}
+                                    onChange={(e) => this.setState({ segCode: e.target.value })}
+                                />
                             </div>
                         </div>
 
@@ -603,6 +582,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                                     this.setState({ wunschtermin: '' });
                                                 }
                                             }}
+                                            style={{ width: '100%' }}
                                         />
                                     );
                                 })()}
@@ -621,20 +601,48 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                 </select>
                             </div>
                         </div>
+
+                        <div className={styles.formRow}>
+                            <div className={styles.formField}>
+                                <label className={styles.formLabel}>Antwort in:</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', height: '38px', padding: '0 8px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#1e293b' }}>
+                                        <input
+                                            type="radio"
+                                            name="antwortIn"
+                                            value="Deutsch"
+                                            checked={this.state.antwortIn === 'Deutsch'}
+                                            onChange={() => this.setState({ antwortIn: 'Deutsch' })}
+                                            style={{ width: '16px', height: '16px', accentColor: '#3b82f6' }}
+                                        />
+                                        Deutsch
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#1e293b' }}>
+                                        <input
+                                            type="radio"
+                                            name="antwortIn"
+                                            value="Englisch"
+                                            checked={this.state.antwortIn === 'Englisch'}
+                                            onChange={() => this.setState({ antwortIn: 'Englisch' })}
+                                            style={{ width: '16px', height: '16px', accentColor: '#3b82f6' }}
+                                        />
+                                        Englisch
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                    <div style={{ flex: 1 }}>
-                        {!isFormValid && (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#DC2626', fontSize: '13px', fontWeight: 500 }}>
-                                <span>⚠️</span> {missingFieldsText}
-                            </div>
-                        )}
-                    </div>
+                {/* Footer Center Aligned */}
+                <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    {!isFormValid && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 20px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#DC2626', fontSize: '13px', fontWeight: 500, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                            <span>⚠️</span> {missingFieldsText}
+                        </div>
+                    )}
 
-                    <div className={styles.btnRow} style={{ marginTop: 0, padding: 0, background: 'transparent', borderTop: 'none' }}>
+                    <div style={{ display: 'flex', gap: '16px' }}>
                         <button className={styles.btnSecondary} onClick={this.props.onBack}>
                             Abbrechen
                         </button>
