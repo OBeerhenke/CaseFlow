@@ -347,7 +347,7 @@ export class SharePointService {
             const idxMaterial = getColIdx(['material'], 16);
             const idxZielVk = getColIdx(['ziel vk', 'zielpreis'], 17);
             const idxSop = getColIdx(['sop', 'beginndat'], 20);
-            const idxSegCode = getColIdx(['segcode', 'segment', 'seg'], 21); // Assuming it's often close to SOP
+            const idxSegCode = getColIdx(['branch', 'segcode', 'segment', 'seg'], 21); // Adjusted for 'Branch' column per user screenshot
 
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
