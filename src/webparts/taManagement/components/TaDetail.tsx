@@ -349,19 +349,30 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                         </div>
                     )}
 
-                    {/* Status ändern */}
-                    <div className={styles.formGroup}>
-                        <h4 className={styles.formGroupTitle}>Status ändern</h4>
-                        <select
-                            className={styles.formSelect}
-                            value={this.state.status}
-                            onChange={(e) => this.setState({ status: e.target.value })}
-                        >
-                            {STATUS_VALUES.map(s => (
-                                <option key={s} value={s}>{s}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {/* Aktionen */}
+                    {this.state.status !== 'abgeschlossen' && (
+                        <div className={styles.formGroup}>
+                            <h4 className={styles.formGroupTitle}>TA Abschließen</h4>
+                            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 12px 0' }}>
+                                Der Status (z.B. prüfen, überfällig) wird von der App nun automatisch anhand des geplanten Termins berechnet.
+                            </p>
+                            <button
+                                type="button"
+                                className={styles.btnPrimary}
+                                style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}
+                                onClick={() => {
+                                    if (window.confirm("Bist du sicher, dass du diese TA abschließen möchtest? (Status wird auf 'abgeschlossen' gesetzt)")) {
+                                        this.setState({ status: 'abgeschlossen' }, () => {
+                                            void this.handleSave();
+                                        });
+                                    }
+                                }}
+                                disabled={this.state.saving}
+                            >
+                                TA erfolgreich abschließen
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}

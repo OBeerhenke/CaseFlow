@@ -230,26 +230,50 @@ export class SharePointService {
         };
     }
 
-    /** Auto-detect overdue TAs and update their status */
-    public async checkOverdue(tas: ITaItem[]): Promise<number> {
+    /** Auto-detect TA statuses based on planned date and update them if needed */
+    public async evaluateStatuses(tas: ITaItem[]): Promise<number> {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        let count = 0;
+        let updatedCount = 0;
 
         for (const ta of tas) {
-            if (ta.Status !== 'überfällig' && ta.Status !== 'abgeschlossen' && ta.field_6) {
-                const parts = ta.field_6.split('.');
-                if (parts.length === 3) {
-                    const planDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                    if (planDate < today) {
-                        await this.updateTA(ta.ID, { Status: 'überfällig' });
-                        ta.Status = 'überfällig';
-                        count++;
+            if (ta.Status === 'abgeschlossen') continue;
+
+            let expectedStatus = ta.Status;
+
+            if (!ta.field_6) {
+                expectedStatus = 'Termin planen';
+            } else {
+                let planDate: Date;
+                if (ta.field_6.includes('-')) {
+                    planDate = new Date(ta.field_6);
+                } else {
+                    const parts = ta.field_6.split('.');
+                    if (parts.length === 3) {
+                        planDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                    } else {
+                        planDate = new Date();
                     }
                 }
+                planDate.setHours(0, 0, 0, 0);
+
+                if (planDate > today) {
+                    expectedStatus = 'läuft planmäßig';
+                } else if (planDate.getTime() === today.getTime()) {
+                    expectedStatus = 'prüfen';
+                } else {
+                    expectedStatus = 'überfällig';
+                }
+            }
+
+            if (ta.Status !== expectedStatus) {
+                // Trigger an update in the background, don't necessarily need to block on it unless desired.
+                this.updateTA(ta.ID, { Status: expectedStatus }).catch(e => console.error("Auto-status update failed for TA", ta.ID, e));
+                ta.Status = expectedStatus;
+                updatedCount++;
             }
         }
-        return count;
+        return updatedCount;
     }
 
     public async getNextTaNumber(): Promise<string> {

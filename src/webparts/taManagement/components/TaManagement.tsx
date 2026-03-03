@@ -56,7 +56,7 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
       ]);
 
       // Auto-detect overdue
-      await this.svc.checkOverdue(tas);
+      await this.svc.evaluateStatuses(tas);
 
       const kpi = await this.svc.getKpiData(tas);
       this.setState({ tas, projekte, users, kpi, loading: false });
