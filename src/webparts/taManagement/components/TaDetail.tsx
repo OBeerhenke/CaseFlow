@@ -29,6 +29,10 @@ interface ITaDetailState {
     showDelayModal: boolean;
     delayReason: string;
     delayThresholdDays: number;
+    // Editable cost fields
+    budgetBeiStart: string;
+    istKosten: string;
+    geplanteKosten: string;
 }
 
 export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailState> {
@@ -47,7 +51,11 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             savingTermin: false,
             showDelayModal: false,
             delayReason: '',
-            delayThresholdDays: 2
+            delayThresholdDays: 2,
+            // Cost fields init from TA
+            budgetBeiStart: props.ta.field_17 || '',
+            istKosten: props.ta.field_18 !== undefined && props.ta.field_18 !== null ? props.ta.field_18.toString() : '',
+            geplanteKosten: props.ta.field_19 !== undefined && props.ta.field_19 !== null ? props.ta.field_19.toString() : ''
         };
     }
 
@@ -63,10 +71,33 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     private handleSave = async (): Promise<void> => {
         this.setState({ saving: true });
         try {
-            await this.props.onSave(this.props.ta.ID, {
+            const updates: Partial<Record<string, string | number | undefined>> = {
                 field_2: this.state.bemerkung,
-                Status: this.state.status
-            });
+                Status: this.state.status,
+                // Save cost fields
+                field_17: this.state.budgetBeiStart || undefined,
+                field_18: this.state.istKosten ? parseFloat(this.state.istKosten.replace(',', '.')) : undefined,
+                field_19: this.state.geplanteKosten ? parseFloat(this.state.geplanteKosten.replace(',', '.')) : undefined,
+            };
+
+            // If completing the TA, set Erledigungsdatum to today
+            if (this.state.status === 'abgeschlossen' && this.props.ta.Status !== 'abgeschlossen') {
+                const today = new Date();
+                const pad2 = (n: number): string => n < 10 ? '0' + n : '' + n;
+                updates.Erledigungsdatum = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+            }
+
+            // If Verantwortlicher was changed, resolve and save
+            if (this.state.verantwortlicherLoginName && this.props.onEnsureUser) {
+                try {
+                    const userId = await this.props.onEnsureUser(this.state.verantwortlicherLoginName);
+                    (updates as any).VerantwortlicherId = userId;
+                } catch (e) {
+                    console.error("Error ensuring user for save:", e);
+                }
+            }
+
+            await this.props.onSave(this.props.ta.ID, updates);
         } finally {
             this.setState({ saving: false });
         }
@@ -141,7 +172,17 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
         }
 
         try {
+            // Save termin + verantwortlicher
             await this.props.onSetTermin(this.props.ta.ID, formatted, finalVerantwortlicherId, this.state.delayReason);
+
+            // Also save costs + bemerkung in the same action
+            const updates: Partial<Record<string, string | number | undefined>> = {
+                field_2: this.state.bemerkung,
+                field_17: this.state.budgetBeiStart || undefined,
+                field_18: this.state.istKosten ? parseFloat(this.state.istKosten.replace(',', '.')) : undefined,
+                field_19: this.state.geplanteKosten ? parseFloat(this.state.geplanteKosten.replace(',', '.')) : undefined,
+            };
+            await this.props.onSave(this.props.ta.ID, updates);
         } finally {
             this.setState({ savingTermin: false, verantwortlicherSearchText: '', verantwortlicherLoginName: null, termin: '', showDelayModal: false, delayReason: '' });
         }
@@ -192,7 +233,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                     </div>
 
                     {/* Termine */}
-                    <div className={styles.formGroup}>
+                    <div className={styles.formGroup} style={{ position: 'relative', zIndex: 10 }}>
                         <h4 className={styles.formGroupTitle}>Termine</h4>
                         <div className={styles.detailGrid}>
                             <div className={styles.detailItem}>
@@ -212,10 +253,10 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                         {!ta.field_6 ? (
                             <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <h5 style={{ margin: '0 0 12px 0', color: '#334155' }}>Neuen Termin einplanen</h5>
-                                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
 
                                     {/* Verantwortlicher Search */}
-                                    <div style={{ flex: '1 1 200px', position: 'relative' }}>
+                                    <div style={{ position: 'relative' }}>
                                         <label className={styles.formLabel} style={{ fontSize: '12px', marginBottom: '4px' }}>Verantwortlicher (optional)</label>
                                         <input
                                             className={styles.formInput}
@@ -225,16 +266,20 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                             placeholder="Suchen (min. 3 Zeichen)"
                                         />
                                         {this.state.showVerantwortlicherSuggestions && (
-                                            <div style={{ position: 'absolute', zIndex: 100, background: 'white', border: '1px solid #ccc', borderRadius: 4, maxHeight: 150, overflow: 'auto', width: '100%', top: 'calc(100% + 4px)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
+                                            <div className={styles.suggestionDropdown}>
                                                 {this.state.verantwortlicherSuggestions.map(u => (
                                                     <div
                                                         key={u.Key}
+                                                        className={styles.suggestionItem}
                                                         onClick={() => this.selectVerantwortlicher(u)}
-                                                        style={{ padding: '6px 10px', cursor: 'pointer', fontSize: 13, color: 'black' }}
-                                                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f0f0')}
-                                                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                                     >
-                                                        {u.DisplayText}
+                                                        <div className={styles.suggestionAvatar}>
+                                                            {(u.DisplayText || '?').charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className={styles.suggestionInfo}>
+                                                            <span className={styles.suggestionName}>{u.DisplayText}</span>
+                                                            <span className={styles.suggestionEmail}>{u.EntityData?.Email || u.Description || ''}</span>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -242,7 +287,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                     </div>
 
                                     {/* Date Picker */}
-                                    <div style={{ flex: '0 1 160px' }}>
+                                    <div>
                                         <label className={styles.formLabel} style={{ fontSize: '12px', marginBottom: '4px' }}>Datum</label>
                                         <input
                                             type="date"
@@ -252,24 +297,47 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                             onChange={(e) => this.setState({ termin: e.target.value })}
                                         />
                                     </div>
-
-                                    <button
-                                        className={styles.btnSuccess}
-                                        style={{ height: '36px', padding: '0 16px', whiteSpace: 'nowrap' }}
-                                        disabled={!this.state.termin || this.state.savingTermin}
-                                        onClick={this.handlePlanen}
-                                    >
-                                        {this.state.savingTermin ? 'Speichere...' : 'Termin einplanen'}
-                                    </button>
                                 </div>
                             </div>
                         ) : (
-                            <button
-                                className={styles.btnWarning}
-                                onClick={() => this.setState({ showModal: true })}
-                            >
-                                Termin verschieben
-                            </button>
+                            <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                {/* Verantwortlicher ändern */}
+                                <div style={{ flex: '1 1 200px', position: 'relative' }}>
+                                    <label className={styles.formLabel} style={{ fontSize: '12px', marginBottom: '4px' }}>Verantwortlicher ändern</label>
+                                    <input
+                                        className={styles.formInput}
+                                        style={{ width: '100%' }}
+                                        value={this.state.verantwortlicherSearchText}
+                                        onChange={(e) => this.handleVerantwortlicherChange(e.target.value)}
+                                        placeholder={ta.Verantwortlicher?.Title || 'Suchen (min. 3 Zeichen)'}
+                                    />
+                                    {this.state.showVerantwortlicherSuggestions && (
+                                        <div className={styles.suggestionDropdown}>
+                                            {this.state.verantwortlicherSuggestions.map(u => (
+                                                <div
+                                                    key={u.Key}
+                                                    className={styles.suggestionItem}
+                                                    onClick={() => this.selectVerantwortlicher(u)}
+                                                >
+                                                    <div className={styles.suggestionAvatar}>
+                                                        {(u.DisplayText || '?').charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className={styles.suggestionInfo}>
+                                                        <span className={styles.suggestionName}>{u.DisplayText}</span>
+                                                        <span className={styles.suggestionEmail}>{u.EntityData?.Email || u.Description || ''}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    className={styles.btnWarning}
+                                    onClick={() => this.setState({ showModal: true })}
+                                >
+                                    Termin verschieben
+                                </button>
+                            </div>
                         )}
                     </div>
 
@@ -310,15 +378,34 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                         <div className={styles.detailGrid}>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Budget bei Start</span>
-                                <span className={styles.detailValue}>{ta.field_17 || '–'}</span>
+                                <input
+                                    className={styles.formInput}
+                                    value={this.state.budgetBeiStart}
+                                    onChange={(e) => this.setState({ budgetBeiStart: e.target.value })}
+                                    placeholder="z.B. 5.000 €"
+                                />
                             </div>
                             <div className={styles.detailItem}>
-                                <span className={styles.detailLabel}>Geplante Kosten</span>
-                                <span className={styles.detailValue}>{this.formatCurrency(ta.field_19)}</span>
+                                <span className={styles.detailLabel}>Geplante Kosten (€)</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    className={styles.formInput}
+                                    value={this.state.geplanteKosten}
+                                    onChange={(e) => this.setState({ geplanteKosten: e.target.value })}
+                                    placeholder="0.00"
+                                />
                             </div>
                             <div className={styles.detailItem}>
-                                <span className={styles.detailLabel}>IST Kosten</span>
-                                <span className={styles.detailValue}>{this.formatCurrency(ta.field_18)}</span>
+                                <span className={styles.detailLabel}>IST Kosten (€)</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    className={styles.formInput}
+                                    value={this.state.istKosten}
+                                    onChange={(e) => this.setState({ istKosten: e.target.value })}
+                                    placeholder="0.00"
+                                />
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Differenz</span>
@@ -350,27 +437,34 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                     )}
 
                     {/* Aktionen */}
-                    {this.state.status !== 'abgeschlossen' && (
+                    {this.state.status !== 'abgeschlossen' && this.state.status !== 'Termin planen' && (
                         <div className={styles.formGroup}>
-                            <h4 className={styles.formGroupTitle}>TA Abschließen</h4>
-                            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 12px 0' }}>
-                                Der Status (z.B. prüfen, überfällig) wird von der App nun automatisch anhand des geplanten Termins berechnet.
-                            </p>
-                            <button
-                                type="button"
-                                className={styles.btnPrimary}
-                                style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}
-                                onClick={() => {
-                                    if (window.confirm("Bist du sicher, dass du diese TA abschließen möchtest? (Status wird auf 'abgeschlossen' gesetzt)")) {
-                                        this.setState({ status: 'abgeschlossen' }, () => {
-                                            void this.handleSave();
-                                        });
-                                    }
-                                }}
-                                disabled={this.state.saving}
-                            >
-                                TA erfolgreich abschließen
-                            </button>
+                            <h4 className={styles.formGroupTitle}>Aktionen</h4>
+                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    className={styles.btnPrimary}
+                                    onClick={this.handleSave}
+                                    disabled={this.state.saving}
+                                >
+                                    {this.state.saving ? 'Speichere...' : 'Änderungen speichern'}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.btnPrimary}
+                                    style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}
+                                    onClick={() => {
+                                        if (window.confirm("Bist du sicher, dass du diese TA abschließen möchtest? (Status wird auf 'abgeschlossen' gesetzt)")) {
+                                            this.setState({ status: 'abgeschlossen' }, () => {
+                                                void this.handleSave();
+                                            });
+                                        }
+                                    }}
+                                    disabled={this.state.saving}
+                                >
+                                    TA erfolgreich abschließen
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -380,13 +474,15 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                     <button className={styles.btnSecondary} onClick={this.props.onBack}>
                         ← Zurück
                     </button>
-                    <button
-                        className={styles.btnPrimary}
-                        onClick={this.handleSave}
-                        disabled={this.state.saving}
-                    >
-                        {this.state.saving ? 'Speichere...' : 'Speichern'}
-                    </button>
+                    {this.state.status === 'Termin planen' && (
+                        <button
+                            className={styles.btnSuccess}
+                            onClick={this.handlePlanen}
+                            disabled={!this.state.termin || this.state.savingTermin}
+                        >
+                            {this.state.savingTermin ? 'Speichere...' : 'Termin einplanen & Speichern'}
+                        </button>
+                    )}
                 </div>
 
                 {/* Modal */}

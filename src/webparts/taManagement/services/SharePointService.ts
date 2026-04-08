@@ -17,11 +17,6 @@ const CONFIG_LIST = 'TA_Config';
 function pad2(n: number): string {
     return n < 10 ? '0' + n : '' + n;
 }
-function pad3(n: number): string {
-    if (n < 10) return '00' + n;
-    if (n < 100) return '0' + n;
-    return '' + n;
-}
 
 export class SharePointService {
     private static _instance: SharePointService;
@@ -44,7 +39,7 @@ export class SharePointService {
                 'ID', 'Title', 'field_1', 'field_2', 'field_4', 'field_5', 'field_6',
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
-                'field_20', 'field_21', 'field_22', 'Status', 'Modified',
+                'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )
@@ -73,7 +68,14 @@ export class SharePointService {
                 PrincipalType: 1,    // PrincipalType.User
                 QueryString: query
             });
-            return results;
+            // Only show users whose email local part contains a dot (e.g. John.Doe@...)
+            // This filters out system/service accounts with numeric or coded email prefixes
+            return results.filter((u: any) => {
+                const email: string = u.EntityData?.Email || u.Description || '';
+                if (!email || !email.includes('@')) return false;
+                const localPart = email.split('@')[0];
+                return localPart.includes('.');
+            });
         } catch (e) {
             console.error("Error searching users:", e);
             return [];
@@ -96,7 +98,7 @@ export class SharePointService {
                 'ID', 'Title', 'field_2', 'field_4', 'field_5', 'field_6',
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
-                'field_20', 'field_21', 'field_22', 'Status', 'Modified',
+                'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )
@@ -113,7 +115,7 @@ export class SharePointService {
                 'ID', 'Title', 'field_1', 'field_2', 'field_4', 'field_5', 'field_6',
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
-                'field_20', 'field_21', 'field_22', 'Status', 'Modified',
+                'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )
@@ -257,12 +259,15 @@ export class SharePointService {
                 }
                 planDate.setHours(0, 0, 0, 0);
 
-                if (planDate > today) {
-                    expectedStatus = 'läuft planmäßig';
-                } else if (planDate.getTime() === today.getTime()) {
+                // Excel-Logik: WORKDAY(TODAY(),3) — 3 Werktage in die Zukunft
+                const pruefenDeadline = this.addWorkdays(today, 3);
+
+                if (planDate <= today) {
+                    expectedStatus = 'überfällig';
+                } else if (planDate <= pruefenDeadline) {
                     expectedStatus = 'prüfen';
                 } else {
-                    expectedStatus = 'überfällig';
+                    expectedStatus = 'läuft planmäßig';
                 }
             }
 
@@ -276,16 +281,48 @@ export class SharePointService {
         return updatedCount;
     }
 
+    /**
+     * Add N workdays (Mon–Fri) to a given date.
+     * Replicates Excel's WORKDAY() function.
+     */
+    private addWorkdays(start: Date, days: number): Date {
+        const result = new Date(start);
+        let added = 0;
+        while (added < days) {
+            result.setDate(result.getDate() + 1);
+            const dow = result.getDay();
+            if (dow !== 0 && dow !== 6) { // Skip Sat (6) and Sun (0)
+                added++;
+            }
+        }
+        return result;
+    }
+
     public async getNextTaNumber(): Promise<string> {
+        const now = new Date();
+        const yy = pad2(now.getFullYear() % 100);
+        const mm = pad2(now.getMonth() + 1);
+        const prefix = `TA${yy}${mm}`;
+
+        // Alle TAs des aktuellen Monats abfragen
         const items = await sp.web.lists.getByTitle(TA_LIST).items
-            .select('ID')
-            .top(1)
-            .orderBy('ID', false)
+            .select('Title')
+            .filter(`startswith(Title,'${prefix}')`)
+            .top(5000)
             .get();
 
-        const nextNum = items.length > 0 ? items[0].ID + 1 : 1;
-        const year = new Date().getFullYear();
-        return 'TA-' + year + '-' + pad3(nextNum);
+        let maxSeq = 0;
+        for (const item of items) {
+            const title: string = item.Title || '';
+            // Letzten 2 Zeichen = laufende Nummer
+            const seqStr = title.substring(prefix.length);
+            const seq = parseInt(seqStr, 10);
+            if (!isNaN(seq) && seq > maxSeq) {
+                maxSeq = seq;
+            }
+        }
+
+        return prefix + pad2(maxSeq + 1);
     }
 
     // ─── Projekt-Liste ─────────────────────────────────

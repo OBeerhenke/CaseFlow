@@ -19,6 +19,20 @@ $radius: 16px;
 $radius-sm: 12px;
 $radius-pill: 13px;
 
+/* ─── Full-width override for SP containers ──────── */
+:global {
+  .CanvasZone,
+  .CanvasZoneContainer,
+  .CanvasSection,
+  .ControlZone,
+  .ControlZone--control,
+  [data-automation-id="CanvasZone"],
+  [data-automation-id="CanvasSection"],
+  [data-automation-id="CanvasControl"] {
+    max-width: 100% !important;
+  }
+}
+
 /* ─── Root Container ─────────────────────────────── */
 .taApp {
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -297,45 +311,126 @@ $radius-pill: 13px;
 .navBar {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  height: 56px;
-  min-height: 56px;
+  gap: 4px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0 24px;
   background: $bg-card;
-  border-top: 1px solid $glass-border;
+  border-bottom: 1px solid $glass-border;
 }
 
 .navItem {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   cursor: pointer;
-  padding: 6px 16px;
-  border-radius: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
   background: none;
   border: none;
   transition: all 0.15s ease;
+  white-space: nowrap;
 
   &:hover {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(59, 130, 246, 0.08);
   }
 }
 
 .navIcon {
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
+  display: flex;
+  align-items: center;
 }
 
 .navLabel {
-  font-size: 10px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .navActive {
+  background: rgba(59, 130, 246, 0.1);
   color: $accent;
+
+  .navIcon :global(.ms-Icon) {
+    color: $accent !important;
+  }
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.15);
+  }
 }
 
 .navInactive {
   color: $text-muted;
+}
+
+/* ─── People Picker Dropdown ─────────────────────── */
+.suggestionDropdown {
+  position: absolute;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid $glass-border;
+  border-radius: $radius-sm;
+  max-height: 200px;
+  overflow: auto;
+  width: 100%;
+  top: calc(100% + 6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.08);
+  }
+}
+
+.suggestionAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $accent, #6366f1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.suggestionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.suggestionName {
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-main;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestionEmail {
+  font-size: 11px;
+  color: $text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ─── Form ───────────────────────────────────────── */
@@ -757,4 +852,254 @@ $radius-pill: 13px;
 .toastError {
   @extend .toast;
   border-color: rgba($clr-overdue, 0.5);
+}
+
+/* ─── Statistik View ─────────────────────────────── */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.statCard {
+  background: $glass-bg;
+  backdrop-filter: blur(12px);
+  border: 1px solid $glass-border;
+  border-radius: $radius;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+.statLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-main;
+  margin-bottom: 2px;
+}
+
+.statSub {
+  font-size: 11px;
+  color: $text-muted;
+}
+
+/* ─── Metrics Row (avg pills) ────────────────────── */
+.metricsRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.metricPill {
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 12px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid $glass-border;
+  border-radius: $radius-sm;
+  text-align: center;
+}
+
+.metricLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.metricValue {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ─── Stacked Bar Chart ──────────────────────────── */
+.barChartContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stackedBar {
+  display: flex;
+  height: 28px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.stackedSegment {
+  height: 100%;
+  min-width: 4px;
+  transition: width 0.4s ease;
+  position: relative;
+
+  &:hover {
+    filter: brightness(1.1);
+  }
+}
+
+.chartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendLabel {
+  color: $text-main;
+  font-weight: 500;
+}
+
+.legendCount {
+  color: $text-muted;
+  font-size: 11px;
+}
+
+/* ─── Reasons Horizontal Bars ────────────────────── */
+.reasonsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reasonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reasonLabel {
+  flex: 0 0 200px;
+  font-size: 12px;
+  color: $text-main;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reasonBarTrack {
+  flex: 1;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.reasonBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, $accent, lighten($accent, 15%));
+  border-radius: 10px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.reasonCount {
+  flex: 0 0 36px;
+  font-size: 12px;
+  font-weight: 600;
+  color: $text-muted;
+  text-align: right;
+}
+
+/* ─── Stats Detail Table ─────────────────────────── */
+.statsTable {
+  border: 1px solid $glass-border;
+  border-radius: $radius-sm;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.statsTableHead {
+  display: flex;
+  background: rgba(248, 250, 252, 0.95);
+  border-bottom: 2px solid $glass-border;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 600px;
+}
+
+.statsTableRow {
+  display: flex;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  min-width: 600px;
+
+  &:hover {
+    background: rgba($accent, 0.04);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.statsColTa {
+  flex: 0 0 120px;
+  font-weight: 600;
+  color: $accent;
+}
+
+.statsColKunde {
+  flex: 1 1 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: $text-main;
+}
+
+.statsColNum {
+  flex: 0 0 100px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }

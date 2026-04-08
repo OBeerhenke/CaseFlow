@@ -9,6 +9,7 @@ import NeueTa from './NeueTa';
 import TerminPlanen from './TerminPlanen';
 import TaDetail from './TaDetail';
 import AlleTas from './AlleTas';
+import Statistik from './Statistik';
 import Settings from './Settings';
 
 interface IAppState {
@@ -218,6 +219,15 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
           />
         );
 
+      case AppView.Statistik:
+        return (
+          <Statistik
+            tas={tas}
+            onSelectTa={this.selectTa}
+            onBack={this.goBack}
+          />
+        );
+
       case AppView.Settings: {
         const kundenList = Array.from(new Set(projekte.map(p => p.field_2 || p.field_1).filter(Boolean))) as string[];
         return (
@@ -245,8 +255,8 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
           </div>
         ) : (
           <>
-            {this.renderView()}
             <NavBar activeView={currentView} onNavigate={this.navigate} />
+            {this.renderView()}
           </>
         )}
 

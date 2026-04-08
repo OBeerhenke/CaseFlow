@@ -109,7 +109,7 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                                 <span className={styles.listRowBold}>TA-Nr.</span>
                                 <span className={styles.listRowMuted}>Kunde</span>
                                 <span className={styles.listRowMuted}>Material</span>
-                                <span className={styles.listRowMuted}>Ersteller</span>
+                                <span className={styles.listRowMuted}>Verantwortlich</span>
                                 <span className={styles.listRowMuted} style={{ width: 85, flex: 'none' }}>Termin</span>
                                 <span style={{ width: 120, flex: 'none', textAlign: 'center' }}>Status</span>
                             </div>
@@ -122,7 +122,7 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                                     <span className={styles.listRowBold}>{ta.Title}</span>
                                     <span className={styles.listRowMuted}>{ta.field_8}</span>
                                     <span className={styles.listRowMuted}>{ta.field_12 || '–'}</span>
-                                    <span className={styles.listRowMuted} title={ta.Ersteller?.Title}>{ta.Ersteller?.Title || '–'}</span>
+                                    <span className={styles.listRowMuted} title={ta.Verantwortlicher?.Title}>{ta.Verantwortlicher?.Title || '–'}</span>
                                     <span className={styles.listRowMuted} style={{ width: 85, flex: 'none' }}>
                                         {ta.field_6 || '–'}
                                     </span>

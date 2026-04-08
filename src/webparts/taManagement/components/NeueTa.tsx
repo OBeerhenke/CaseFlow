@@ -371,32 +371,6 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                 />
                             </div>
                         </div>
-
-                        <div className={styles.formField} style={{ position: 'relative' }}>
-                            <label className={styles.formLabel}>Verantwortlicher</label>
-                            <input
-                                className={styles.formInput}
-                                value={this.state.verantwortlicherSearchText}
-                                onChange={(e) => this.handleVerantwortlicherChange(e.target.value)}
-                                placeholder="Namen eingeben (min. 3 Zeichen)..."
-                            />
-                            {this.state.showVerantwortlicherSuggestions && (
-                                <div style={{ position: 'absolute', zIndex: 10, background: 'rgb(255,255,255)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 4, maxHeight: 150, overflow: 'auto', width: '100%', top: 'calc(100% + 4px)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-                                    {this.state.verantwortlicherSuggestions.map(u => (
-                                        <div
-                                            key={u.Key}
-                                            onClick={() => this.selectVerantwortlicher(u)}
-                                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'rgb(15, 23, 42)' }}
-                                            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
-                                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                                        >
-                                            {u.DisplayText}
-                                            <div style={{ fontSize: 11, color: 'rgb(100, 116, 139)' }}>{u.EntityData?.Email || u.Description}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
 
                     {/* Anfrage-Details */}

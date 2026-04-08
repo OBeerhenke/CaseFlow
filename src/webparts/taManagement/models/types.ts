@@ -22,6 +22,7 @@ export interface ITaItem {
   field_20?: number;        // Differenz
   field_21?: string;        // Grund für Verschiebung
   field_22?: string;        // Ursprünglicher Termin
+  Erledigungsdatum?: string; // Erledigungsdatum (IST)
   Status?: string;          // Choice: Termin planen | läuft planmäßig | prüfen | überfällig | abgeschlossen
   Ersteller?: { Title: string; EMail: string };
   Verantwortlicher?: { Title: string; EMail: string };
@@ -123,6 +124,7 @@ export enum AppView {
   TerminPlanen = 'termin-planen',
   TaDetail = 'ta-detail',
   AlleTas = 'alle-tas',
+  Statistik = 'statistik',
   Settings = 'settings'
 }
 

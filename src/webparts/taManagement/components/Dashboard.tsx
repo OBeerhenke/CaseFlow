@@ -105,7 +105,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ tas, kpi, userName, onNavigate, 
                             <span className={styles.listRowBold}>{ta.Title}</span>
                             <span className={styles.listRowMuted}>{ta.field_8}</span>
                             <span className={styles.listRowMuted}>{ta.field_12}</span>
-                            <span className={styles.listRowMuted} title={ta.Ersteller?.Title}>{ta.Ersteller?.Title || ''}</span>
+                            <span className={styles.listRowMuted} title={ta.Verantwortlicher?.Title}>{ta.Verantwortlicher?.Title || '–'}</span>
                             <StatusPill status={ta.Status || ''} />
                         </div>
                     ))
