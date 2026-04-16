@@ -2,6 +2,7 @@ import { sp } from '@pnp/sp';
 import '@pnp/sp/webs';
 import '@pnp/sp/lists';
 import '@pnp/sp/items';
+import '@pnp/sp/attachments';
 import '@pnp/sp/files'; // Added import for getFileByServerRelativeUrl / getFileByServerRelativePath
 import '@pnp/sp/site-users/web';
 import '@pnp/sp/profiles';
@@ -40,6 +41,7 @@ export class SharePointService {
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
+                'Aufgabenstellung',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )
@@ -123,7 +125,7 @@ export class SharePointService {
             .get();
     }
 
-    public async createTA(form: INewTaForm, taNr: string): Promise<void> {
+    public async createTA(form: INewTaForm, taNr: string): Promise<number> {
         const today = new Date();
         const dateStr = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
 
@@ -147,7 +149,8 @@ export class SharePointService {
             field_8: form.kunde,
             field_9: form.endkunde,
             field_10: form.kontaktNr ? parseInt(form.kontaktNr, 10) : null,
-            field_2: form.aufgabe,
+            Aufgabenstellung: form.aufgabe,
+            field_2: form.bemerkung,
             field_11: form.anwendung,
             field_12: form.material,
             field_16: form.kategorie,
@@ -174,7 +177,8 @@ export class SharePointService {
         });
 
         try {
-            await sp.web.lists.getByTitle(TA_LIST).items.add(item);
+            const result = await sp.web.lists.getByTitle(TA_LIST).items.add(item);
+            return result.data.ID as number;
         } catch (e: any) {
             console.error("Error creating TA:", e);
             if (e.isHttpRequestError) {
@@ -190,6 +194,18 @@ export class SharePointService {
 
     public async updateTA(id: number, fields: Partial<Record<string, string | number | undefined>>): Promise<void> {
         await sp.web.lists.getByTitle(TA_LIST).items.getById(id).update(fields);
+    }
+
+    public async getAttachments(id: number): Promise<{ FileName: string; ServerRelativeUrl: string }[]> {
+        return sp.web.lists.getByTitle(TA_LIST).items.getById(id).attachmentFiles.get();
+    }
+
+    public async addAttachment(id: number, fileName: string, content: ArrayBuffer): Promise<void> {
+        await sp.web.lists.getByTitle(TA_LIST).items.getById(id).attachmentFiles.add(fileName, content);
+    }
+
+    public async deleteAttachment(id: number, fileName: string): Promise<void> {
+        await sp.web.lists.getByTitle(TA_LIST).items.getById(id).attachmentFiles.getByName(fileName).delete();
     }
 
     private convertToIso(dateStr: string): string {
@@ -236,7 +252,7 @@ export class SharePointService {
     public async evaluateStatuses(tas: ITaItem[]): Promise<number> {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        let updatedCount = 0;
+        const updates: { id: number; status: string }[] = [];
 
         for (const ta of tas) {
             if (ta.Status === 'abgeschlossen') continue;
@@ -272,13 +288,22 @@ export class SharePointService {
             }
 
             if (ta.Status !== expectedStatus) {
-                // Trigger an update in the background, don't necessarily need to block on it unless desired.
-                this.updateTA(ta.ID, { Status: expectedStatus }).catch(e => console.error("Auto-status update failed for TA", ta.ID, e));
                 ta.Status = expectedStatus;
-                updatedCount++;
+                updates.push({ id: ta.ID, status: expectedStatus });
             }
         }
-        return updatedCount;
+
+        // Batch status updates sequentially to avoid flooding SharePoint with parallel requests
+        // that each re-trigger Power Automate flows
+        for (const u of updates) {
+            try {
+                await this.updateTA(u.id, { Status: u.status });
+            } catch (e) {
+                console.error("Auto-status update failed for TA", u.id, e);
+            }
+        }
+
+        return updates.length;
     }
 
     /**
@@ -385,6 +410,7 @@ export class SharePointService {
             const idxZielVk = getColIdx(['ziel vk', 'zielpreis'], 17);
             const idxSop = getColIdx(['sop', 'beginndat'], 20);
             const idxSegCode = getColIdx(['branch', 'branchcode', 'segcode', 'segment', 'seg'], 21); // Prioritize Branch names based on recent data inspection
+            const idxVps = getColIdx(['vps'], 22);
 
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
@@ -416,7 +442,8 @@ export class SharePointService {
                         field_16: cols[idxMaterial] ? cols[idxMaterial].replace(/"/g, '').trim() : undefined,
                         field_18: parseNum(cols[idxZielVk]),
                         field_21: cols[idxSop] ? cols[idxSop].replace(/"/g, '').trim() : undefined,
-                        field_12: cols[idxSegCode] ? cols[idxSegCode].replace(/"/g, '').trim() : undefined
+                        field_12: cols[idxSegCode] ? cols[idxSegCode].replace(/"/g, '').trim() : undefined,
+                        vps: cols[idxVps] ? cols[idxVps].replace(/"/g, '').trim() : undefined
                     });
                 }
             }
@@ -443,16 +470,20 @@ export class SharePointService {
 
     public async getKategorien(): Promise<IKategorieItem[]> {
         return sp.web.lists.getByTitle(KATEGORIEN_LIST).items
-            .select('ID', 'Title')
+            .select('ID', 'Title', 'Email')
             .top(500)
             .orderBy('Title', true)
             .get();
     }
 
-    public async addKategorie(title: string): Promise<void> {
-        await sp.web.lists.getByTitle(KATEGORIEN_LIST).items.add({
-            Title: title
-        });
+    public async addKategorie(title: string, email?: string): Promise<void> {
+        const item: Record<string, string> = { Title: title };
+        if (email) item.Email = email;
+        await sp.web.lists.getByTitle(KATEGORIEN_LIST).items.add(item);
+    }
+
+    public async updateKategorie(id: number, fields: { Email?: string }): Promise<void> {
+        await sp.web.lists.getByTitle(KATEGORIEN_LIST).items.getById(id).update(fields);
     }
 
     public async deleteKategorie(id: number): Promise<void> {

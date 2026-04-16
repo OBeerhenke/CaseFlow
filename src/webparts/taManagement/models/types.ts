@@ -9,10 +9,10 @@ export interface ITaItem {
   field_6?: string;         // geplanter Termin
   field_8?: string;         // Kunde
   field_9?: string;         // Endkunde
-  field_10?: number;        // Projekt-Nr.
+  field_10?: number;        // Kundennummer
   field_11?: string;        // Anwendung
   field_12?: string;        // Material
-  field_13?: number;        // Priorität (1=Hoch, 2=Mittel, 3=Niedrig)
+  field_13?: number;        // Priorität (1=Niedrig, 2=Mittel, 3=Hoch)
   field_14?: number;        // Potenzial [jato]
   field_15?: number;        // Chance [%]
   field_16?: string;        // Kategorie
@@ -27,11 +27,13 @@ export interface ITaItem {
   Ersteller?: { Title: string; EMail: string };
   Verantwortlicher?: { Title: string; EMail: string };
   Modified?: string;
+  Aufgabenstellung?: string; // Aufgabenstellung (Note)
 }
 
 export interface IKategorieItem {
   ID: number;
   Title: string; // Kategorie
+  Email?: string; // Ziel-Email bei TA-Anlage
 }
 
 export interface IKundenAnwendungItem {
@@ -56,6 +58,7 @@ export interface IProjektItem {
   field_16?: string;         // Material
   field_18?: number;         // Ziel VK (Preis)
   field_21?: string;         // SOP (BeginnDat)
+  vps?: string;              // VPS (Priorität: 1=Niedrig, 2=Mittel, 3=Hoch)
 }
 
 /** New TA form data */
@@ -64,6 +67,7 @@ export interface INewTaForm {
   endkunde: string;
   kontaktNr: string;
   aufgabe: string;
+  bemerkung: string;
   anwendung: string;
   material: string;
   kategorie: string;

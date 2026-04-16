@@ -221,7 +221,7 @@ $radius-pill: 13px;
 /* ─── Table / List Rows ──────────────────────────── */
 .listRow {
   @extend .glass;
-  display: flex;
+  display: grid;
   align-items: center;
   padding: 12px 16px;
   gap: 12px;
@@ -231,6 +231,30 @@ $radius-pill: 13px;
 
   &:hover {
     background: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.listRowDashboard {
+  grid-template-columns: 110px 1fr 1fr 1fr 70px 1fr 130px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 90px 1fr 1fr 120px;
+  }
+}
+
+.listRowAlleTas {
+  grid-template-columns: 110px 1fr 1fr 1fr 70px 1fr 90px 130px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 90px 1fr 1fr 1fr 120px;
+  }
+}
+
+.listRowTerminPlanen {
+  grid-template-columns: 110px 1fr 1fr 1fr 70px 1fr 130px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 90px 1fr 1fr 120px;
   }
 }
 
@@ -252,14 +276,18 @@ $radius-pill: 13px;
   @extend .listRowCol;
   font-weight: 600;
   color: $text-main;
-  width: 100px;
-  flex: none;
 }
 
 .listRowMuted {
   @extend .listRowCol;
   color: $text-muted;
   font-size: 12px;
+}
+
+.listRowWarn {
+  @extend .listRowCol;
+  color: #F59E0B;
+  font-size: 11px;
 }
 
 /* ─── Status Pill ────────────────────────────────── */
@@ -1102,4 +1130,221 @@ $radius-pill: 13px;
   flex: 0 0 100px;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+/* ─── Mobile FAB (Neue TA) ───────────────────────── */
+.fab {
+  display: none;
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: $accent;
+  color: white;
+  border: none;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 50;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+/* ─── Mobile Responsive ──────────────────────────── */
+@media (max-width: 640px) {
+
+  /* FAB visible on mobile */
+  .fab {
+    display: flex;
+  }
+
+  /* Root: full height, no fixed vh (mobile browser bars) */
+  .taApp {
+    height: 100dvh;
+    min-height: unset;
+  }
+
+  /* Header: compact */
+  .header {
+    padding: 0 16px;
+    height: 52px;
+    min-height: 52px;
+  }
+
+  .headerTitle {
+    font-size: 16px;
+  }
+
+  .headerRight {
+    display: none;
+  }
+
+  /* NavBar: bottom tab bar, icons only */
+  .navBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    height: 60px;
+    min-height: 60px;
+    padding: 0 8px;
+    justify-content: space-around;
+    border-bottom: none;
+    border-top: 1px solid $glass-border;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .navItem {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+    min-width: 0;
+  }
+
+  .navIcon {
+    font-size: 20px;
+  }
+
+  .navLabel {
+    font-size: 10px;
+  }
+
+  /* Content: pad bottom for fixed nav */
+  .content {
+    padding: 12px 12px 80px 12px;
+    gap: 12px;
+  }
+
+  /* KPI tiles: 2×2 on mobile */
+  .kpiRow {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .kpiTile {
+    padding: 12px;
+  }
+
+  .kpiNumber {
+    font-size: 28px;
+  }
+
+  /* Action tiles: full width */
+  .actionRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* List rows: simplified 3-col grid */
+  .listRowDashboard,
+  .listRowTerminPlanen {
+    grid-template-columns: 90px 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+
+    /* Hide middle columns on mobile */
+    > :nth-child(3),
+    > :nth-child(4),
+    > :nth-child(5),
+    > :nth-child(6) {
+      display: none;
+    }
+  }
+
+  .listRowAlleTas {
+    grid-template-columns: 90px 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+
+    /* Hide columns 3-7, show only TA-Nr, Kunde, Status */
+    > :nth-child(3),
+    > :nth-child(4),
+    > :nth-child(5),
+    > :nth-child(6),
+    > :nth-child(7) {
+      display: none;
+    }
+  }
+
+  .listRowBold {
+    font-size: 12px;
+  }
+
+  .listRowMuted {
+    font-size: 11px;
+  }
+
+  /* Glass cards: less padding */
+  .glass {
+    border-radius: $radius-sm;
+  }
+
+  .formGroup {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  /* Form inputs: bigger touch targets */
+  .formInput,
+  .formSelect,
+  .formTextarea {
+    padding: 12px 14px;
+    font-size: 16px; /* prevents iOS zoom */
+    border-radius: 12px;
+    min-height: 44px;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Buttons: full width, bigger touch targets */
+  .btnPrimary,
+  .btnSecondary,
+  .btnSuccess,
+  .btnWarning {
+    padding: 14px 20px;
+    font-size: 15px;
+    min-height: 48px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btnRow {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    margin-bottom: 60px; /* space for bottom nav */
+  }
+
+  /* Detail grid: single column */
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Suggestion dropdown: fullwidth */
+  .suggestionDropdown {
+    max-height: 180px;
+  }
+
+  /* Section headers */
+  .sectionHeader {
+    font-size: 15px;
+  }
+
+  /* Stats grid: 2 columns */
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
 }

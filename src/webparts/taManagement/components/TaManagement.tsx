@@ -96,10 +96,15 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
     });
   }
 
-  private handleCreateTA = async (form: INewTaForm): Promise<void> => {
+  private handleCreateTA = async (form: INewTaForm, files: File[]): Promise<void> => {
     try {
       const taNr = await this.svc.getNextTaNumber();
-      await this.svc.createTA(form, taNr);
+      const newId = await this.svc.createTA(form, taNr);
+      // Upload attachments if any
+      for (const file of files) {
+        const buffer = await file.arrayBuffer();
+        await this.svc.addAttachment(newId, file.name, buffer);
+      }
       this.showToast(`${taNr} erfolgreich angelegt!`);
       await this.loadData();
       this.setState({ currentView: AppView.Dashboard });
@@ -140,8 +145,7 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
       await this.svc.verschiebeTermin(id, neuerTermin, grund, alterTermin);
       this.showToast('Termin verschoben');
       await this.loadData();
-      // Refresh TA detail
-      this.setState({ selectedTaId: id });
+      this.setState({ currentView: AppView.Dashboard });
     } catch (err) {
       console.error('Error shifting termin:', err);
       this.showToast('Fehler beim Verschieben');
@@ -257,6 +261,17 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
           <>
             <NavBar activeView={currentView} onNavigate={this.navigate} />
             {this.renderView()}
+
+            {/* Mobile FAB: Neue TA anlegen */}
+            {currentView !== AppView.NeueTa && (
+              <button
+                className={styles.fab}
+                onClick={() => this.navigate(AppView.NeueTa)}
+                title="Neue TA anlegen"
+              >
+                +
+              </button>
+            )}
           </>
         )}
 

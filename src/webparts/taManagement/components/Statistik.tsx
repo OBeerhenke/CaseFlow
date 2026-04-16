@@ -78,6 +78,20 @@ function pct(count: number, total: number): string {
     return ((count / total) * 100).toFixed(0);
 }
 
+/** Color-coded diff cell: positive = green (ahead), negative = red (late) */
+const DiffCell: React.FC<{ value: number | null }> = ({ value }) => {
+    if (value === null) return <span className={styles.statsColNum} style={{ color: '#94a3b8' }}>–</span>;
+
+    const color = value >= 0 ? '#10B981' : '#EF4444';
+    const prefix = value > 0 ? '+' : '';
+
+    return (
+        <span className={styles.statsColNum} style={{ color, fontWeight: 600 }}>
+            {prefix}{value} WT
+        </span>
+    );
+};
+
 export default class Statistik extends React.Component<IStatistikProps, IStatistikState> {
     constructor(props: IStatistikProps) {
         super(props);
@@ -336,17 +350,3 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
         );
     }
 }
-
-/** Color-coded diff cell: positive = green (ahead), negative = red (late) */
-const DiffCell: React.FC<{ value: number | null }> = ({ value }) => {
-    if (value === null) return <span className={styles.statsColNum} style={{ color: '#94a3b8' }}>–</span>;
-
-    const color = value >= 0 ? '#10B981' : '#EF4444';
-    const prefix = value > 0 ? '+' : '';
-
-    return (
-        <span className={styles.statsColNum} style={{ color, fontWeight: 600 }}>
-            {prefix}{value} WT
-        </span>
-    );
-};

@@ -3,6 +3,13 @@ import styles from './TaManagement.module.scss';
 import { ITaItem } from '../models/types';
 import StatusPill from './StatusPill';
 
+const prioLabel = (p?: number): { text: string; color: string } => {
+    if (p === 3) return { text: '▲ Hoch', color: '#EF4444' };
+    if (p === 2) return { text: '● Mittel', color: '#F59E0B' };
+    if (p === 1) return { text: '▼ Niedrig', color: '#6B7280' };
+    return { text: '–', color: '#CBD5E1' };
+};
+
 export interface ITerminPlanenProps {
     tas: ITaItem[];
     onSelectTa: (id: number) => void;
@@ -38,15 +45,19 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps> {
                         planTas.map((ta) => (
                             <div
                                 key={ta.ID}
-                                className={styles.listRow}
+                                className={`${styles.listRow} ${styles.listRowTerminPlanen}`}
                                 onClick={() => this.props.onSelectTa(ta.ID)}
                                 style={{ cursor: 'pointer' }}
                             >
                                 <span className={styles.listRowBold}>{ta.Title}</span>
-                                <span className={styles.listRowMuted}>{ta.field_8}</span>
-                                <span className={styles.listRowMuted}>{ta.field_12}</span>
+                                <span className={styles.listRowMuted}>{ta.field_8 || '–'}</span>
+                                <span className={styles.listRowMuted}>{ta.field_12 || '–'}</span>
                                 <span className={styles.listRowMuted} title={ta.Verantwortlicher?.Title}>{ta.Verantwortlicher?.Title || '–'}</span>
-                                <StatusPill status={ta.Status || ''} />
+                                <span style={{ fontSize: 11, fontWeight: 600, color: prioLabel(ta.field_13).color }}>{prioLabel(ta.field_13).text}</span>
+                                <span className={styles.listRowWarn} title={ta.field_21}>{ta.field_21 ? `⚠ ${ta.field_21}` : ''}</span>
+                                <span style={{ justifySelf: 'end' }}>
+                                    <StatusPill status={ta.Status || ''} />
+                                </span>
                             </div>
                         ))
                     )}

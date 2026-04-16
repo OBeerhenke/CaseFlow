@@ -5,7 +5,7 @@ import { INewTaForm, IProjektItem } from '../models/types';
 export interface INeueTaProps {
     projekte: IProjektItem[];
     users: any[];
-    onSubmit: (form: INewTaForm) => Promise<void>;
+    onSubmit: (form: INewTaForm, files: File[]) => Promise<void>;
     onBack: () => void;
     onSearchUsers?: (query: string) => Promise<any[]>;
     onEnsureUser?: (login: string) => Promise<number>;
@@ -24,9 +24,12 @@ interface INeueTaState extends INewTaForm {
     verantwortlicherSuggestions: any[];
     showVerantwortlicherSuggestions: boolean;
     availableKategorien: { ID: number; Title: string }[];
+    files: File[];
 }
 
 export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> {
+    private fileInputRef = React.createRef<HTMLInputElement>();
+
     constructor(props: INeueTaProps) {
         super(props);
 
@@ -44,6 +47,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
             endkunde: '',
             kontaktNr: '',
             aufgabe: '',
+            bemerkung: '',
             anwendung: '',
             material: '',
             kategorie: '',
@@ -68,7 +72,8 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
             verantwortlicherLoginName: null,
             verantwortlicherSuggestions: [],
             showVerantwortlicherSuggestions: false,
-            availableKategorien: []
+            availableKategorien: [],
+            files: []
         };
     }
 
@@ -118,6 +123,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
             this.setState({
                 endkunde: projekteForKunde[0].field_13 || '',
                 kontaktNr: projekteForKunde[0].Title || '',
+                prioritaet: projekteForKunde[0].vps || '',
             });
         } else {
             this.setState({
@@ -147,17 +153,15 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 (p.field_1 && p.field_1.trim() === kunde.trim())
             );
 
-            // Replicate VBA logic: Dropdown string is "Bezeichnung VproNumber"
-            // where VproNumber is Title (padded to at least 4 chars)
+            // Dropdown format: "VproNumber - Bezeichnung" (e.g. "2405 - Joch für VI KIT")
             const anwendungenSet = new Set<string>();
             projekteForKunde.forEach(p => {
                 if (p.field_7 && p.Title) {
                     let vpro = p.Title;
-                    // Pad to 4 digits if it's purely numeric and short, mimicking VBA string length logic
                     if (!isNaN(parseInt(vpro)) && vpro.length < 4) {
                         vpro = ('0000' + vpro).slice(-4);
                     }
-                    anwendungenSet.add(`${p.field_7} ${vpro}`);
+                    anwendungenSet.add(`${vpro} - ${p.field_7}`);
                 } else if (p.field_7) {
                     anwendungenSet.add(p.field_7);
                 }
@@ -202,21 +206,22 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
             if (!isNaN(parseInt(vpro)) && vpro.length < 4) {
                 vpro = ('0000' + vpro).slice(-4);
             }
-            const comboString = p.field_7 ? `${p.field_7} ${vpro}`.trim() : '';
+            const comboString = p.field_7 ? `${vpro} - ${p.field_7}`.trim() : '';
             return comboString === value || p.field_7 === value;
         });
 
         if (projekt) {
             this.setState({
-                potenzial: projekt.field_8 ? projekt.field_8.toString() : this.state.potenzial,
-                chance: projekt.field_10 !== undefined ? projekt.field_10.toString() : this.state.chance, // Chance is already 10, no need to multiply
-                budget: projekt.field_11 !== undefined ? projekt.field_11.toString() : this.state.budget,
-                material: projekt.field_16 || this.state.material,
-                endkunde: projekt.field_13 || this.state.endkunde,
-                kontaktNr: projekt.Title || this.state.kontaktNr,
-                zielpreis: projekt.field_18 !== undefined ? projekt.field_18.toString() : this.state.zielpreis,
-                sop: projekt.field_21 || this.state.sop,
-                segCode: projekt.field_12 || this.state.segCode,
+                potenzial: projekt.field_8 ? projekt.field_8.toString() : '',
+                chance: projekt.field_10 !== undefined ? projekt.field_10.toString() : '',
+                budget: projekt.field_11 !== undefined ? projekt.field_11.toString() : '',
+                material: projekt.field_16 || '',
+                endkunde: projekt.field_13 || '',
+                kontaktNr: projekt.Title || '',
+                zielpreis: projekt.field_18 !== undefined ? projekt.field_18.toString() : '',
+                sop: projekt.field_21 || '',
+                segCode: projekt.field_12 || '',
+                prioritaet: projekt.vps || '',
                 showAnwendungenSuggestions: false,
             });
         }
@@ -270,6 +275,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 endkunde: this.state.endkunde,
                 kontaktNr: this.state.kontaktNr,
                 aufgabe: this.state.aufgabe,
+                bemerkung: this.state.bemerkung,
                 anwendung: this.state.anwendung,
                 material: this.state.material,
                 kategorie: this.state.kategorie,
@@ -283,7 +289,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 segCode: this.state.segCode,
                 antwortIn: this.state.antwortIn,
                 prioritaet: this.state.prioritaet
-            });
+            }, this.state.files);
         } finally {
             this.setState({ saving: false });
         }
@@ -362,7 +368,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                 />
                             </div>
                             <div className={styles.formField}>
-                                <label className={styles.formLabel}>Kontakt-Nr.</label>
+                                <label className={styles.formLabel}>Kundennummer</label>
                                 <input
                                     className={styles.formInput}
                                     value={this.state.kontaktNr}
@@ -387,9 +393,61 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                             />
                         </div>
 
+                        <div className={styles.formField}>
+                            <label className={styles.formLabel}>Bemerkung</label>
+                            <textarea
+                                className={styles.formTextarea}
+                                value={this.state.bemerkung}
+                                onChange={(e) => this.setState({ bemerkung: e.target.value })}
+                                placeholder="Optionale Bemerkung..."
+                            />
+                        </div>
+
+                        <div className={styles.formField}>
+                            <label className={styles.formLabel}>Anhänge</label>
+                            <input
+                                ref={this.fileInputRef}
+                                type="file"
+                                multiple
+                                style={{ display: 'none' }}
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) {
+                                        const newFiles = Array.from(e.target.files);
+                                        this.setState(prev => ({ files: [...prev.files, ...newFiles] }));
+                                    }
+                                    e.target.value = '';
+                                }}
+                            />
+                            <button
+                                type="button"
+                                className={styles.btnSecondary}
+                                onClick={() => this.fileInputRef.current?.click()}
+                                style={{ marginBottom: 8 }}
+                            >
+                                + Dateien hinzufügen
+                            </button>
+                            {this.state.files.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {this.state.files.map((f, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'rgb(15, 23, 42)' }}>
+                                            <span>📎 {f.name}</span>
+                                            <span style={{ color: '#94a3b8', fontSize: 11 }}>({(f.size / 1024).toFixed(0)} KB)</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => this.setState(prev => ({ files: prev.files.filter((_, idx) => idx !== i) }))}
+                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 13, padding: 0 }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         <div className={styles.formRow}>
                             <div className={styles.formField} style={{ position: 'relative' }}>
-                                <label className={styles.formLabel}>Anwendung</label>
+                                <label className={styles.formLabel}>VP</label>
                                 <input
                                     className={styles.formInput}
                                     value={this.state.anwendung}
@@ -398,7 +456,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                     onBlur={() => setTimeout(() => this.setState({ showAnwendungenSuggestions: false }), 200)}
                                     placeholder={
                                         this.state.anwendungenList.length > 0
-                                            ? "Anwendung aus Liste wählen..."
+                                            ? "VP aus Liste wählen..."
                                             : "Zuerst Kunde wählen..."
                                     }
                                     disabled={!this.state.kunde}
@@ -563,16 +621,20 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                             </div>
                             <div className={styles.formField}>
                                 <label className={styles.formLabel}>Priorität</label>
-                                <select
-                                    className={styles.formSelect}
-                                    value={this.state.prioritaet}
-                                    onChange={(e) => this.setState({ prioritaet: e.target.value })}
-                                >
-                                    <option value="">Auswählen...</option>
-                                    <option value="1">Hoch (1)</option>
-                                    <option value="2">Mittel (2)</option>
-                                    <option value="3">Niedrig (3)</option>
-                                </select>
+                                {(() => {
+                                    const p = this.state.prioritaet;
+                                    const label = p === '3' ? '▲ Hoch' : p === '2' ? '● Mittel' : p === '1' ? '▼ Niedrig' : 'Ohne Prio';
+                                    const color = p === '3' ? '#EF4444' : p === '2' ? '#F59E0B' : p === '1' ? '#6B7280' : '#CBD5E1';
+                                    return (
+                                        <div
+                                            className={styles.formInput}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 8, color, fontWeight: 600, fontSize: 14, background: '#f8fafc', cursor: 'default' }}
+                                        >
+                                            {label}
+                                            <span style={{ fontSize: 11, fontWeight: 400, color: '#94a3b8', marginLeft: 'auto' }}>aus Projektliste (VPS)</span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
 

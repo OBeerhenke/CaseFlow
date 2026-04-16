@@ -33,9 +33,14 @@ interface ITaDetailState {
     budgetBeiStart: string;
     istKosten: string;
     geplanteKosten: string;
+    // Attachments
+    attachments: { FileName: string; ServerRelativeUrl: string }[];
+    uploadingFile: boolean;
 }
 
 export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailState> {
+    private fileInputRef = React.createRef<HTMLInputElement>();
+
     constructor(props: ITaDetailProps) {
         super(props);
         this.state = {
@@ -55,7 +60,9 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             // Cost fields init from TA
             budgetBeiStart: props.ta.field_17 || '',
             istKosten: props.ta.field_18 !== undefined && props.ta.field_18 !== null ? props.ta.field_18.toString() : '',
-            geplanteKosten: props.ta.field_19 !== undefined && props.ta.field_19 !== null ? props.ta.field_19.toString() : ''
+            geplanteKosten: props.ta.field_19 !== undefined && props.ta.field_19 !== null ? props.ta.field_19.toString() : '',
+            attachments: [],
+            uploadingFile: false
         };
     }
 
@@ -65,6 +72,41 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             this.setState({ delayThresholdDays: parseInt(delayRaw, 10) || 2 });
         } catch (e) {
             console.error("Failed to load delay threshold config", e);
+        }
+        this.loadAttachments().catch(console.error);
+    }
+
+    private async loadAttachments(): Promise<void> {
+        try {
+            const attachments = await SharePointService.instance.getAttachments(this.props.ta.ID);
+            this.setState({ attachments });
+        } catch (e) {
+            console.error("Failed to load attachments", e);
+        }
+    }
+
+    private handleFileUpload = async (files: FileList): Promise<void> => {
+        this.setState({ uploadingFile: true });
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const buffer = await file.arrayBuffer();
+                await SharePointService.instance.addAttachment(this.props.ta.ID, file.name, buffer);
+            }
+            await this.loadAttachments();
+        } catch (e) {
+            console.error("Failed to upload attachment", e);
+        } finally {
+            this.setState({ uploadingFile: false });
+        }
+    }
+
+    private handleDeleteAttachment = async (fileName: string): Promise<void> => {
+        try {
+            await SharePointService.instance.deleteAttachment(this.props.ta.ID, fileName);
+            await this.loadAttachments();
+        } catch (e) {
+            console.error("Failed to delete attachment", e);
         }
     }
 
@@ -189,13 +231,20 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     }
 
     private handleVerschieben = async (neuerTermin: string, grund: string): Promise<void> => {
-        await this.props.onVerschieben(
-            this.props.ta.ID,
-            neuerTermin,
-            grund,
-            this.props.ta.field_6 || ''
-        );
+        if (this.state.saving) return;
         this.setState({ showModal: false });
+        if (!window.confirm(`Termin wirklich auf ${neuerTermin} verschieben?\nGrund: ${grund}`)) return;
+        this.setState({ saving: true });
+        try {
+            await this.props.onVerschieben(
+                this.props.ta.ID,
+                neuerTermin,
+                grund,
+                this.props.ta.field_6 || ''
+            );
+        } finally {
+            this.setState({ saving: false });
+        }
     }
 
     private formatCurrency(val: number | undefined): string {
@@ -257,7 +306,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
                                     {/* Verantwortlicher Search */}
                                     <div style={{ position: 'relative' }}>
-                                        <label className={styles.formLabel} style={{ fontSize: '12px', marginBottom: '4px' }}>Verantwortlicher (optional)</label>
+                                        <label className={styles.formLabel} style={{ fontSize: '12px', marginBottom: '4px' }}>Verantwortlicher <span style={{ color: '#ef4444' }}>*</span></label>
                                         <input
                                             className={styles.formInput}
                                             style={{ width: '100%' }}
@@ -354,11 +403,11 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                 <span className={styles.detailValue}>{ta.field_9 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
-                                <span className={styles.detailLabel}>Projekt-Nr.</span>
+                                <span className={styles.detailLabel}>Kundennummer</span>
                                 <span className={styles.detailValue}>{ta.field_10 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
-                                <span className={styles.detailLabel}>Anwendung</span>
+                                <span className={styles.detailLabel}>VP</span>
                                 <span className={styles.detailValue}>{ta.field_11 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
@@ -386,26 +435,38 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                 />
                             </div>
                             <div className={styles.detailItem}>
-                                <span className={styles.detailLabel}>Geplante Kosten (€)</span>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    className={styles.formInput}
-                                    value={this.state.geplanteKosten}
-                                    onChange={(e) => this.setState({ geplanteKosten: e.target.value })}
-                                    placeholder="0.00"
-                                />
+                                <span className={styles.detailLabel}>Geplante Kosten (€) {this.state.status === 'Termin planen' && <span style={{ color: '#ef4444' }}>*</span>}</span>
+                                {this.state.status === 'Termin planen' ? (
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className={styles.formInput}
+                                        value={this.state.geplanteKosten}
+                                        onChange={(e) => this.setState({ geplanteKosten: e.target.value })}
+                                        placeholder="0.00"
+                                    />
+                                ) : (
+                                    <span className={styles.detailValue}>
+                                        {this.state.geplanteKosten ? `${parseFloat(this.state.geplanteKosten).toLocaleString('de-DE')} €` : '–'}
+                                    </span>
+                                )}
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>IST Kosten (€)</span>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    className={styles.formInput}
-                                    value={this.state.istKosten}
-                                    onChange={(e) => this.setState({ istKosten: e.target.value })}
-                                    placeholder="0.00"
-                                />
+                                {this.state.status !== 'Termin planen' ? (
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className={styles.formInput}
+                                        value={this.state.istKosten}
+                                        onChange={(e) => this.setState({ istKosten: e.target.value })}
+                                        placeholder="0.00"
+                                    />
+                                ) : (
+                                    <span className={styles.detailValue}>
+                                        {this.state.istKosten ? `${parseFloat(this.state.istKosten).toLocaleString('de-DE')} €` : '–'}
+                                    </span>
+                                )}
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Differenz</span>
@@ -418,6 +479,14 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                         </div>
                     </div>
 
+                    {/* Aufgabenstellung */}
+                    {ta.Aufgabenstellung && (
+                        <div className={styles.formGroup}>
+                            <h4 className={styles.formGroupTitle}>Aufgabenstellung</h4>
+                            <p style={{ fontSize: 13, color: 'rgb(15, 23, 42)', margin: 0, whiteSpace: 'pre-wrap' }}>{ta.Aufgabenstellung}</p>
+                        </div>
+                    )}
+
                     {/* Bemerkungen */}
                     <div className={styles.formGroup}>
                         <h4 className={styles.formGroupTitle}>Bemerkungen</h4>
@@ -426,6 +495,57 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                             value={this.state.bemerkung}
                             onChange={(e) => this.setState({ bemerkung: e.target.value })}
                         />
+                    </div>
+
+                    {/* Anhänge */}
+                    <div className={styles.formGroup}>
+                        <h4 className={styles.formGroupTitle}>Anhänge</h4>
+                        <input
+                            ref={this.fileInputRef}
+                            type="file"
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                    this.handleFileUpload(e.target.files).catch(console.error);
+                                }
+                                e.target.value = '';
+                            }}
+                        />
+                        <button
+                            type="button"
+                            className={styles.btnSecondary}
+                            onClick={() => this.fileInputRef.current?.click()}
+                            disabled={this.state.uploadingFile}
+                            style={{ marginBottom: 8 }}
+                        >
+                            {this.state.uploadingFile ? 'Wird hochgeladen...' : '+ Dateien hinzufügen'}
+                        </button>
+                        {this.state.attachments.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {this.state.attachments.map(att => (
+                                    <div key={att.FileName} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                                        <a
+                                            href={att.ServerRelativeUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ color: '#3b82f6', textDecoration: 'none' }}
+                                        >
+                                            📎 {att.FileName}
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => { if (confirm(`"${att.FileName}" wirklich löschen?`)) this.handleDeleteAttachment(att.FileName).catch(console.error); }}
+                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 13, padding: 0 }}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>Keine Anhänge</p>
+                        )}
                     </div>
 
                     {/* Verschiebungsgrund */}
@@ -460,11 +580,14 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                             });
                                         }
                                     }}
-                                    disabled={this.state.saving}
+                                    disabled={this.state.saving || !this.state.istKosten}
                                 >
                                     TA erfolgreich abschließen
                                 </button>
                             </div>
+                            {!this.state.istKosten && (
+                                <p style={{ fontSize: 12, color: '#ef4444', margin: '8px 0 0 0' }}>Bitte IST Kosten eintragen, um die TA abzuschließen.</p>
+                            )}
                         </div>
                     )}
                 </div>
@@ -475,13 +598,20 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                         ← Zurück
                     </button>
                     {this.state.status === 'Termin planen' && (
-                        <button
-                            className={styles.btnSuccess}
-                            onClick={this.handlePlanen}
-                            disabled={!this.state.termin || this.state.savingTermin}
-                        >
-                            {this.state.savingTermin ? 'Speichere...' : 'Termin einplanen & Speichern'}
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                            <button
+                                className={styles.btnSuccess}
+                                onClick={this.handlePlanen}
+                                disabled={!this.state.termin || !this.state.verantwortlicherLoginName || !this.state.geplanteKosten || this.state.savingTermin}
+                            >
+                                {this.state.savingTermin ? 'Speichere...' : 'Termin einplanen & Speichern'}
+                            </button>
+                            {(!this.state.termin || !this.state.verantwortlicherLoginName || !this.state.geplanteKosten) && (
+                                <span style={{ fontSize: 12, color: '#ef4444' }}>
+                                    Pflichtfelder: {[!this.state.termin && 'Termin', !this.state.verantwortlicherLoginName && 'Verantwortlicher', !this.state.geplanteKosten && 'Geplante Kosten'].filter(Boolean).join(', ')}
+                                </span>
+                            )}
+                        </div>
                     )}
                 </div>
 

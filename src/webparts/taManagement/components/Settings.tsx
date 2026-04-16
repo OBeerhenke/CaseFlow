@@ -17,6 +17,9 @@ interface ISettingsState {
     // Kategorien
     kategorien: IKategorieItem[];
     newKategorieName: string;
+    newKategorieEmail: string;
+    editingEmailId: number | null;
+    editingEmailValue: string;
 
     // View Navigation
     activeSettingView: 'menu' | 'kategorien' | 'config';
@@ -34,6 +37,9 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
             error: null,
             kategorien: [],
             newKategorieName: '',
+            newKategorieEmail: '',
+            editingEmailId: null,
+            editingEmailValue: '',
             activeSettingView: 'menu',
             delayThreshold: '2',
             savingConfig: false
@@ -60,8 +66,11 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
         if (!this.state.newKategorieName.trim()) return;
         this.setState({ loading: true });
         try {
-            await SharePointService.instance.addKategorie(this.state.newKategorieName.trim());
-            this.setState({ newKategorieName: '' });
+            await SharePointService.instance.addKategorie(
+                this.state.newKategorieName.trim(),
+                this.state.newKategorieEmail.trim() || undefined
+            );
+            this.setState({ newKategorieName: '', newKategorieEmail: '' });
             await this.loadKategorien();
         } catch (e: any) {
             this.setState({ error: 'Fehler beim Anlegen: ' + e.message, loading: false });
@@ -76,6 +85,17 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
             await this.loadKategorien();
         } catch (e: any) {
             this.setState({ error: 'Fehler beim Löschen: ' + e.message, loading: false });
+        }
+    }
+
+    private handleSaveEmail = async (id: number): Promise<void> => {
+        this.setState({ loading: true });
+        try {
+            await SharePointService.instance.updateKategorie(id, { Email: this.state.editingEmailValue.trim() || undefined });
+            this.setState({ editingEmailId: null, editingEmailValue: '' });
+            await this.loadKategorien();
+        } catch (e: any) {
+            this.setState({ error: 'Fehler beim Speichern der Email: ' + e.message, loading: false });
         }
     }
 
@@ -188,6 +208,15 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
                                                 onChange={(e) => this.setState({ newKategorieName: e.target.value })}
                                                 onKeyPress={(e) => e.key === 'Enter' && this.handleAddKategorie()}
                                             />
+                                            <input
+                                                className={styles.formInput}
+                                                style={{ flex: 1 }}
+                                                placeholder="Email-Empfänger..."
+                                                type="email"
+                                                value={this.state.newKategorieEmail}
+                                                onChange={(e) => this.setState({ newKategorieEmail: e.target.value })}
+                                                onKeyPress={(e) => e.key === 'Enter' && this.handleAddKategorie()}
+                                            />
                                             <button
                                                 className={styles.btnPrimary}
                                                 style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}
@@ -206,10 +235,44 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
                                         ) : (
                                             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                                                 {this.state.kategorien.map(k => (
-                                                    <li key={k.ID} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f1f5f9' }}>
-                                                        <span style={{ fontWeight: 500, color: '#334155' }}>{k.Title}</span>
+                                                    <li key={k.ID} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f1f5f9', gap: '12px' }}>
+                                                        <span style={{ fontWeight: 500, color: '#334155', minWidth: '200px', flexShrink: 0 }}>{k.Title}</span>
+                                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            {this.state.editingEmailId === k.ID ? (
+                                                                <>
+                                                                    <input
+                                                                        className={styles.formInput}
+                                                                        style={{ flex: 1, fontSize: '13px' }}
+                                                                        type="email"
+                                                                        placeholder="Email-Empfänger..."
+                                                                        value={this.state.editingEmailValue}
+                                                                        onChange={(e) => this.setState({ editingEmailValue: e.target.value })}
+                                                                        onKeyPress={(e) => e.key === 'Enter' && this.handleSaveEmail(k.ID)}
+                                                                        autoFocus
+                                                                    />
+                                                                    <button
+                                                                        style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}
+                                                                        onClick={() => this.handleSaveEmail(k.ID)}
+                                                                        title="Speichern"
+                                                                    >✓</button>
+                                                                    <button
+                                                                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}
+                                                                        onClick={() => this.setState({ editingEmailId: null, editingEmailValue: '' })}
+                                                                        title="Abbrechen"
+                                                                    >✕</button>
+                                                                </>
+                                                            ) : (
+                                                                <span
+                                                                    style={{ fontSize: '13px', color: k.Email ? '#3b82f6' : '#94a3b8', cursor: 'pointer' }}
+                                                                    onClick={() => this.setState({ editingEmailId: k.ID, editingEmailValue: k.Email || '' })}
+                                                                    title="Email bearbeiten"
+                                                                >
+                                                                    {k.Email || '(keine Email)'}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <button
-                                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px' }}
+                                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px', flexShrink: 0 }}
                                                             onClick={() => this.handleDeleteKategorie(k.ID)}
                                                             title="Löschen"
                                                         >
