@@ -46,6 +46,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
             kunde: '',
             endkunde: '',
             kontaktNr: '',
+            projektNr: '',
             aufgabe: '',
             bemerkung: '',
             anwendung: '',
@@ -122,13 +123,15 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
         if (projekteForKunde.length > 0) {
             this.setState({
                 endkunde: projekteForKunde[0].field_13 || '',
-                kontaktNr: projekteForKunde[0].Title || '',
+                kontaktNr: projekteForKunde[0].kontaktNr || '',
+                projektNr: projekteForKunde[0].Title || '',
                 prioritaet: projekteForKunde[0].vps || '',
             });
         } else {
             this.setState({
                 endkunde: '',
                 kontaktNr: '',
+                projektNr: '',
             });
         }
 
@@ -217,7 +220,8 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 budget: projekt.field_11 !== undefined ? projekt.field_11.toString() : '',
                 material: projekt.field_16 || '',
                 endkunde: projekt.field_13 || '',
-                kontaktNr: projekt.Title || '',
+                kontaktNr: projekt.kontaktNr || '',
+                projektNr: projekt.Title || '',
                 zielpreis: projekt.field_18 !== undefined ? projekt.field_18.toString() : '',
                 sop: projekt.field_21 || '',
                 segCode: projekt.field_12 || '',
@@ -288,7 +292,8 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                 sop: this.state.sop,
                 segCode: this.state.segCode,
                 antwortIn: this.state.antwortIn,
-                prioritaet: this.state.prioritaet
+                prioritaet: this.state.prioritaet,
+                projektNr: this.state.projektNr
             }, this.state.files);
         } finally {
             this.setState({ saving: false });
@@ -368,7 +373,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                 />
                             </div>
                             <div className={styles.formField}>
-                                <label className={styles.formLabel}>Kundennummer</label>
+                                <label className={styles.formLabel}>Kontaktnummer</label>
                                 <input
                                     className={styles.formInput}
                                     value={this.state.kontaktNr}
@@ -376,6 +381,70 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                     style={{ opacity: 0.6 }}
                                 />
                             </div>
+                        </div>
+
+                        <div className={styles.formRow}>
+                            <div className={styles.formField} style={{ position: 'relative' }}>
+                                <label className={styles.formLabel}>VP</label>
+                                <input
+                                    className={styles.formInput}
+                                    value={this.state.anwendung}
+                                    onChange={(e) => this.handleAnwendungChange(e.target.value)}
+                                    onFocus={() => this.setState({ showAnwendungenSuggestions: true, filteredAnwendungen: this.state.anwendung ? this.state.filteredAnwendungen : this.state.anwendungenList })}
+                                    onBlur={() => setTimeout(() => this.setState({ showAnwendungenSuggestions: false }), 200)}
+                                    placeholder={
+                                        this.state.anwendungenList.length > 0
+                                            ? "VP aus Liste wählen..."
+                                            : "Zuerst Kunde wählen..."
+                                    }
+                                    disabled={!this.state.kunde}
+                                    style={{
+                                        width: '100%',
+                                        boxSizing: 'border-box',
+                                        paddingRight: '32px',
+                                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(0,0,0,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`,
+                                        backgroundRepeat: 'no-repeat',
+                                        backgroundPosition: 'right 12px center'
+                                    }}
+                                />
+                                {this.state.showAnwendungenSuggestions && (
+                                    <div style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '0 0 8px 8px', maxHeight: 150, overflow: 'auto', marginTop: -2, position: 'relative', zIndex: 10 }}>
+                                        {this.state.filteredAnwendungen.slice(0, 50).map(a => (
+                                            <div
+                                                key={a}
+                                                onClick={() => this.selectAnwendung(a)}
+                                                style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'rgb(15, 23, 42)' }}
+                                                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
+                                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                            >
+                                                {a}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className={styles.formField}>
+                                <label className={styles.formLabel}>Material</label>
+                                <input
+                                    className={styles.formInput}
+                                    value={this.state.material}
+                                    onChange={(e) => this.setState({ material: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className={styles.formField}>
+                            <label className={styles.formLabel}>Kategorie</label>
+                            <select
+                                className={styles.formSelect}
+                                value={this.state.kategorie}
+                                onChange={(e) => this.setState({ kategorie: e.target.value })}
+                            >
+                                <option value="">Auswählen...</option>
+                                {this.state.availableKategorien.map(kat => (
+                                    <option key={kat.ID} value={kat.Title}>{kat.Title}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
@@ -443,70 +512,6 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                     ))}
                                 </div>
                             )}
-                        </div>
-
-                        <div className={styles.formRow}>
-                            <div className={styles.formField} style={{ position: 'relative' }}>
-                                <label className={styles.formLabel}>VP</label>
-                                <input
-                                    className={styles.formInput}
-                                    value={this.state.anwendung}
-                                    onChange={(e) => this.handleAnwendungChange(e.target.value)}
-                                    onFocus={() => this.setState({ showAnwendungenSuggestions: true, filteredAnwendungen: this.state.anwendung ? this.state.filteredAnwendungen : this.state.anwendungenList })}
-                                    onBlur={() => setTimeout(() => this.setState({ showAnwendungenSuggestions: false }), 200)}
-                                    placeholder={
-                                        this.state.anwendungenList.length > 0
-                                            ? "VP aus Liste wählen..."
-                                            : "Zuerst Kunde wählen..."
-                                    }
-                                    disabled={!this.state.kunde}
-                                    style={{
-                                        width: '100%',
-                                        boxSizing: 'border-box',
-                                        paddingRight: '32px',
-                                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(0,0,0,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")`,
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundPosition: 'right 12px center'
-                                    }}
-                                />
-                                {this.state.showAnwendungenSuggestions && (
-                                    <div style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '0 0 8px 8px', maxHeight: 150, overflow: 'auto', marginTop: -2, position: 'relative', zIndex: 10 }}>
-                                        {this.state.filteredAnwendungen.slice(0, 50).map(a => (
-                                            <div
-                                                key={a}
-                                                onClick={() => this.selectAnwendung(a)}
-                                                style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 13, color: 'rgb(15, 23, 42)' }}
-                                                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,0.04)')}
-                                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                                            >
-                                                {a}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <div className={styles.formField}>
-                                <label className={styles.formLabel}>Material</label>
-                                <input
-                                    className={styles.formInput}
-                                    value={this.state.material}
-                                    onChange={(e) => this.setState({ material: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className={styles.formField}>
-                            <label className={styles.formLabel}>Kategorie</label>
-                            <select
-                                className={styles.formSelect}
-                                value={this.state.kategorie}
-                                onChange={(e) => this.setState({ kategorie: e.target.value })}
-                            >
-                                <option value="">Auswählen...</option>
-                                {this.state.availableKategorien.map(kat => (
-                                    <option key={kat.ID} value={kat.Title}>{kat.Title}</option>
-                                ))}
-                            </select>
                         </div>
                     </div>
 

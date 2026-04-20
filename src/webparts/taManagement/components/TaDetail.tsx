@@ -9,7 +9,7 @@ export interface ITaDetailProps {
     ta: ITaItem;
     onBack: () => void;
     onSave: (id: number, fields: Partial<Record<string, string | number | undefined>>) => Promise<void>;
-    onVerschieben: (id: number, neuerTermin: string, grund: string, alterTermin: string) => Promise<void>;
+    onVerschieben: (id: number, neuerTermin: string, grund: string, alterTermin: string, urspruenglicherTermin?: string) => Promise<void>;
     onSetTermin?: (id: number, termin: string, verantwortlicherId?: number, delayReason?: string) => Promise<void>;
     onSearchUsers?: (query: string) => Promise<any[]>;
     onEnsureUser?: (login: string) => Promise<number>;
@@ -240,7 +240,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                 this.props.ta.ID,
                 neuerTermin,
                 grund,
-                this.props.ta.field_6 || ''
+                this.props.ta.field_6 || '',
+                this.props.ta.field_22 || undefined
             );
         } finally {
             this.setState({ saving: false });

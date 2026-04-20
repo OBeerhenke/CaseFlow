@@ -26,6 +26,7 @@ interface ISettingsState {
 
     // Global App Settings
     delayThreshold: string;
+    pruefenTage: string;
     savingConfig: boolean;
 }
 
@@ -42,6 +43,7 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
             editingEmailValue: '',
             activeSettingView: 'menu',
             delayThreshold: '2',
+            pruefenTage: '3',
             savingConfig: false
         };
     }
@@ -105,7 +107,8 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
         this.setState({ loading: true, error: null });
         try {
             const delayRaw = await SharePointService.instance.getConfigValue('DelayThresholdDays', '2');
-            this.setState({ delayThreshold: delayRaw, loading: false });
+            const pruefenRaw = await SharePointService.instance.getConfigValue('PruefenTage', '3');
+            this.setState({ delayThreshold: delayRaw, pruefenTage: pruefenRaw, loading: false });
         } catch (e: any) {
             this.setState({ error: 'Fehler beim Laden der Einstellungen: ' + e.message, loading: false });
         }
@@ -115,6 +118,7 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
         this.setState({ savingConfig: true, error: null });
         try {
             await SharePointService.instance.setConfigValue('DelayThresholdDays', this.state.delayThreshold);
+            await SharePointService.instance.setConfigValue('PruefenTage', this.state.pruefenTage);
             this.setState({ savingConfig: false });
             alert('Einstellungen gespeichert!');
         } catch (e: any) {
@@ -311,6 +315,21 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
                                                 onChange={(e) => this.setState({ delayThreshold: e.target.value })}
                                                 style={{ width: '150px' }}
                                                 min="0"
+                                            />
+                                        </div>
+
+                                        <div className={styles.formField} style={{ marginBottom: 24 }}>
+                                            <label className={styles.formLabel}>Prüfen-Schwelle (Tage)</label>
+                                            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 12px 0' }}>
+                                                Anzahl Tage vor dem geplanten Termin, ab der eine TA den Status „prüfen" erhält. Wird auch von der täglichen Status-Email (Power Automate) verwendet.
+                                            </p>
+                                            <input
+                                                type="number"
+                                                className={styles.formInput}
+                                                value={this.state.pruefenTage}
+                                                onChange={(e) => this.setState({ pruefenTage: e.target.value })}
+                                                style={{ width: '150px' }}
+                                                min="1"
                                             />
                                         </div>
 

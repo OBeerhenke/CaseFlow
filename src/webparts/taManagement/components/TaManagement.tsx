@@ -140,9 +140,9 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
     }
   }
 
-  private handleVerschieben = async (id: number, neuerTermin: string, grund: string, alterTermin: string): Promise<void> => {
+  private handleVerschieben = async (id: number, neuerTermin: string, grund: string, alterTermin: string, urspruenglicherTermin?: string): Promise<void> => {
     try {
-      await this.svc.verschiebeTermin(id, neuerTermin, grund, alterTermin);
+      await this.svc.verschiebeTermin(id, neuerTermin, grund, alterTermin, urspruenglicherTermin);
       this.showToast('Termin verschoben');
       await this.loadData();
       this.setState({ currentView: AppView.Dashboard });

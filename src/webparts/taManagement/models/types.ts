@@ -28,6 +28,7 @@ export interface ITaItem {
   Verantwortlicher?: { Title: string; EMail: string };
   Modified?: string;
   Aufgabenstellung?: string; // Aufgabenstellung (Note)
+  Projektnummer?: number;    // VPro-Nummer aus Projektliste
 }
 
 export interface IKategorieItem {
@@ -45,7 +46,8 @@ export interface IKundenAnwendungItem {
 /** SharePoint Projekt-Liste item */
 export interface IProjektItem {
   ID: number;
-  Title: string;            // Kontakt
+  Title: string;            // VPro
+  kontaktNr?: string;        // Kontaktnummer (Spalte "Kontakt")
   field_1?: string;          // Kunde
   field_2?: string;          // Name
   field_3?: string;          // Name 2
@@ -81,6 +83,7 @@ export interface INewTaForm {
   segCode: string;
   antwortIn: "Deutsch" | "Englisch";
   prioritaet: string;
+  projektNr: string;
 }
 
 /** Status constants */

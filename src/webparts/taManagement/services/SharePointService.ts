@@ -41,7 +41,7 @@ export class SharePointService {
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
-                'Aufgabenstellung',
+                'Aufgabenstellung', 'Projektnummer',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )
@@ -164,6 +164,7 @@ export class SharePointService {
             SOP: form.sop,                                // NEW Field
             SegCode: form.segCode,                        // NEW Field
             AntwortIn: form.antwortIn,                    // NEW Field
+            Projektnummer: form.projektNr ? parseInt(form.projektNr, 10) : null,
             field_5: wunschIso || undefined,
             field_4: dateStr,
             Status: 'Termin planen'
@@ -231,12 +232,16 @@ export class SharePointService {
         await this.updateTA(id, updateData);
     }
 
-    public async verschiebeTermin(id: number, neuerTermin: string, grund: string, alterTermin: string): Promise<void> {
-        await this.updateTA(id, {
-            field_22: this.convertToIso(alterTermin),
+    public async verschiebeTermin(id: number, neuerTermin: string, grund: string, alterTermin: string, urspruenglicherTermin?: string): Promise<void> {
+        const updateData: Record<string, string> = {
             field_6: this.convertToIso(neuerTermin),
             field_21: grund
-        });
+        };
+        // Ursprünglichen Termin nur bei der ersten Verschiebung setzen
+        if (!urspruenglicherTermin) {
+            updateData.field_22 = this.convertToIso(alterTermin);
+        }
+        await this.updateTA(id, updateData);
     }
 
     public async getKpiData(tas: ITaItem[]): Promise<IKpiData> {
@@ -253,6 +258,9 @@ export class SharePointService {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const updates: { id: number; status: string }[] = [];
+
+        const pruefenTageRaw = await this.getConfigValue('PruefenTage', '3');
+        const pruefenTage = parseInt(pruefenTageRaw, 10) || 3;
 
         for (const ta of tas) {
             if (ta.Status === 'abgeschlossen') continue;
@@ -275,8 +283,8 @@ export class SharePointService {
                 }
                 planDate.setHours(0, 0, 0, 0);
 
-                // Excel-Logik: WORKDAY(TODAY(),3) — 3 Werktage in die Zukunft
-                const pruefenDeadline = this.addWorkdays(today, 3);
+                // Prüfen-Schwelle aus TA_Config (PruefenTage) — Werktage
+                const pruefenDeadline = this.addWorkdays(today, pruefenTage);
 
                 if (planDate <= today) {
                     expectedStatus = 'überfällig';
@@ -402,6 +410,7 @@ export class SharePointService {
             const idxSelektion = getColIdx(['selektion'], 6);
             // Fallback for Bezeichnung if Selektion not found? Actually they use both.
             // Let's ensure idxSelektion is used for the dropdown base!
+            const idxKontakt = getColIdx(['kontakt'], 0);
             const idxPotential = getColIdx(['potential', 'potenzial'], 8);
             const idxChance = getColIdx(['chance'], 9);
             const idxBudget = getColIdx(['budget'], 10);
@@ -431,7 +440,8 @@ export class SharePointService {
 
                     projekte.push({
                         ID: parseInt(cols[0].replace(/"/g, '').trim()) || i,
-                        Title: cols[idxVpro] ? cols[idxVpro].replace(/"/g, '').trim() : '', // VproNumber / Kontakt-Nr
+                        Title: cols[idxVpro] ? cols[idxVpro].replace(/"/g, '').trim() : '', // VproNumber
+                        kontaktNr: cols[idxKontakt] ? cols[idxKontakt].replace(/"/g, '').trim() : '',
                         field_1: cols[idxKunde] ? cols[idxKunde].replace(/"/g, '').trim() : '',
                         field_2: cols[idxName] ? cols[idxName].replace(/"/g, '').trim() : '',
                         field_7: cols[idxSelektion] ? cols[idxSelektion].replace(/"/g, '').trim() : '', // Selektion is our dropdown value
