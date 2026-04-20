@@ -9,7 +9,7 @@ export interface ITaItem {
   field_6?: string;         // geplanter Termin
   field_8?: string;         // Kunde
   field_9?: string;         // Endkunde
-  field_10?: number;        // Kundennummer
+  field_10?: number;        // Kontaktnummer
   field_11?: string;        // Anwendung
   field_12?: string;        // Material
   field_13?: number;        // Priorität (1=Niedrig, 2=Mittel, 3=Hoch)

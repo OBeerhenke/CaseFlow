@@ -404,7 +404,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                 <span className={styles.detailValue}>{ta.field_9 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
-                                <span className={styles.detailLabel}>Kundennummer</span>
+                                <span className={styles.detailLabel}>Kontaktnummer</span>
                                 <span className={styles.detailValue}>{ta.field_10 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
