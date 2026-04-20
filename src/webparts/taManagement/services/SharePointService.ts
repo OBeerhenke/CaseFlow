@@ -41,7 +41,7 @@ export class SharePointService {
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
-                'Aufgabenstellung', 'Projektnummer',
+                'Aufgabenstellung',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )
@@ -164,7 +164,7 @@ export class SharePointService {
             SOP: form.sop,                                // NEW Field
             SegCode: form.segCode,                        // NEW Field
             AntwortIn: form.antwortIn,                    // NEW Field
-            Projektnummer: form.projektNr ? parseInt(form.projektNr, 10) : null,
+            // Projektnummer: form.projektNr ? parseInt(form.projektNr, 10) : null, // TODO: Feld erst in SharePoint anlegen!
             field_5: wunschIso || undefined,
             field_4: dateStr,
             Status: 'Termin planen'
