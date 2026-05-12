@@ -571,10 +571,13 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                         className={styles.formInput}
                                         value={this.state.budget}
                                         onChange={(e) => this.setState({ budget: e.target.value })}
-                                        style={{ width: '100%' }}
+                                        style={{ width: '100%', color: !this.state.budget || parseFloat(this.state.budget) === 0 ? '#EF4444' : '#3B82F6', fontWeight: 600 }}
                                     />
                                     <span className={styles.formUnit} style={{ width: '30px' }}>€</span>
                                 </div>
+                                {(!this.state.budget || parseFloat(this.state.budget) === 0) && (
+                                    <span style={{ color: '#EF4444', fontSize: 11, marginTop: 4, display: 'block' }}>⚠ Kein Projektbudget vorhanden</span>
+                                )}
                             </div>
                         </div>
 

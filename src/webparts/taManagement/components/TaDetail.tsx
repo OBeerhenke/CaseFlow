@@ -29,7 +29,8 @@ interface ITaDetailState {
     showDelayModal: boolean;
     delayReason: string;
     delayThresholdDays: number;
-    // Editable cost fields
+    // Editable fields
+    prioritaet: string;
     budgetBeiStart: string;
     istKosten: string;
     geplanteKosten: string;
@@ -57,7 +58,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             showDelayModal: false,
             delayReason: '',
             delayThresholdDays: 2,
-            // Cost fields init from TA
+            // Editable fields init from TA
+            prioritaet: props.ta.field_13 !== undefined && props.ta.field_13 !== null ? props.ta.field_13.toString() : '',
             budgetBeiStart: props.ta.field_17 || '',
             istKosten: props.ta.field_18 !== undefined && props.ta.field_18 !== null ? props.ta.field_18.toString() : '',
             geplanteKosten: props.ta.field_19 !== undefined && props.ta.field_19 !== null ? props.ta.field_19.toString() : '',
@@ -116,7 +118,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             const updates: Partial<Record<string, string | number | undefined>> = {
                 field_2: this.state.bemerkung,
                 Status: this.state.status,
-                // Save cost fields
+                // Save priority + cost fields
+                field_13: this.state.prioritaet ? parseInt(this.state.prioritaet, 10) : undefined,
                 field_17: this.state.budgetBeiStart || undefined,
                 field_18: this.state.istKosten ? parseFloat(this.state.istKosten.replace(',', '.')) : undefined,
                 field_19: this.state.geplanteKosten ? parseFloat(this.state.geplanteKosten.replace(',', '.')) : undefined,
@@ -419,6 +422,19 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                 <span className={styles.detailLabel}>Kategorie</span>
                                 <span className={styles.detailValue}>{ta.field_16 || '–'}</span>
                             </div>
+                            <div className={styles.detailItem}>
+                                <span className={styles.detailLabel}>Priorität</span>
+                                <select
+                                    className={styles.formSelect}
+                                    value={this.state.prioritaet}
+                                    onChange={(e) => this.setState({ prioritaet: e.target.value })}
+                                >
+                                    <option value="">Ohne</option>
+                                    <option value="1">▼ Niedrig</option>
+                                    <option value="2">● Mittel</option>
+                                    <option value="3">▲ Hoch</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -433,7 +449,11 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                     value={this.state.budgetBeiStart}
                                     onChange={(e) => this.setState({ budgetBeiStart: e.target.value })}
                                     placeholder="z.B. 5.000 €"
+                                    style={{ color: !this.state.budgetBeiStart || parseFloat(this.state.budgetBeiStart) === 0 ? '#EF4444' : '#3B82F6', fontWeight: 600 }}
                                 />
+                                {(!this.state.budgetBeiStart || parseFloat(this.state.budgetBeiStart) === 0) && (
+                                    <span style={{ color: '#EF4444', fontSize: 11, marginTop: 4, display: 'block' }}>⚠ Kein Projektbudget vorhanden</span>
+                                )}
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Geplante Kosten (€) {this.state.status === 'Termin planen' && <span style={{ color: '#ef4444' }}>*</span>}</span>

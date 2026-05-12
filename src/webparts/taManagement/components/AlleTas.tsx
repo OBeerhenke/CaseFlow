@@ -1,13 +1,16 @@
 import * as React from 'react';
 import styles from './TaManagement.module.scss';
 import { ITaItem, STATUS_VALUES } from '../models/types';
-import StatusPill from './StatusPill';
+import StatusPill from './StatusPill'; 
 
-const prioLabel = (p?: number): { text: string; color: string } => {
-    if (p === 3) return { text: '▲ Hoch', color: '#EF4444' };
-    if (p === 2) return { text: '● Mittel', color: '#F59E0B' };
-    if (p === 1) return { text: '▼ Niedrig', color: '#6B7280' };
-    return { text: '–', color: '#CBD5E1' };
+type SortKey = 'Title' | 'Ersteller' | 'Kunde' | 'Material' | 'Kategorie' | 'Verantwortlicher' | 'Termin' | 'Status';
+type SortDir = 'asc' | 'desc';
+
+const getInitials = (name?: string): string => {
+    if (!name) return '–';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
 };
 
 export interface IAlleTasProps {
@@ -20,7 +23,9 @@ export interface IAlleTasProps {
 interface IAlleTasState {
     search: string;
     statusFilter: string;
-    prioFilter: string;
+    kategorieFilter: string;
+    sortKey: SortKey;
+    sortDir: SortDir;
 }
 
 export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasState> {
@@ -28,8 +33,10 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
         super(props);
         this.state = {
             search: '',
-            statusFilter: props.initialFilter || 'Alle',
-            prioFilter: 'Alle'
+            statusFilter: props.initialFilter || 'Offen',
+            kategorieFilter: 'Alle',
+            sortKey: 'Termin',
+            sortDir: 'asc'
         };
     }
 
@@ -39,39 +46,77 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
         }
     }
 
-    private getFilteredTas(): ITaItem[] {
-        const { search, statusFilter, prioFilter } = this.state;
+    private getKategorien(): string[] {
+        const set = new Set<string>();
+        this.props.tas.forEach(ta => { if (ta.field_16) set.add(ta.field_16); });
+        return Array.from(set).sort();
+    }
 
-        return this.props.tas
-            .filter(ta => {
-                // Text search
-                if (search) {
-                    const s = search.toLowerCase();
-                    const ersteller = (ta.Ersteller?.Title || '').toLowerCase();
-                    const matchesSearch =
-                        (ta.Title || '').toLowerCase().includes(s) ||
-                        (ta.field_8 || '').toLowerCase().includes(s) ||
-                        (ta.field_12 || '').toLowerCase().includes(s) ||
-                        (ta.field_9 || '').toLowerCase().includes(s) ||
-                        ersteller.includes(s);
-                    if (!matchesSearch) return false;
-                }
-                // Status filter
-                if (statusFilter !== 'Alle' && ta.Status !== statusFilter) return false;
-                // Priority filter
-                if (prioFilter !== 'Alle' && ta.field_13 !== parseInt(prioFilter)) return false;
-                return true;
-            })
-            .sort((a, b) => {
-                // Sort by priority first, then by modified desc
-                const prioDiff = (a.field_13 || 99) - (b.field_13 || 99);
-                if (prioDiff !== 0) return prioDiff;
-                return new Date(b.Modified || '').getTime() - new Date(a.Modified || '').getTime();
-            });
+    private getSortValue(ta: ITaItem, key: SortKey): string {
+        switch (key) {
+            case 'Title': return ta.Title || '';
+            case 'Ersteller': return ta.Ersteller?.Title || '';
+            case 'Kunde': return ta.field_8 || '';
+            case 'Material': return ta.field_12 || '';
+            case 'Kategorie': return ta.field_16 || '';
+            case 'Verantwortlicher': return ta.Verantwortlicher?.Title || '';
+            case 'Termin': return ta.field_6 || '9999-12-31';
+            case 'Status': return ta.Status || '';
+            default: return '';
+        }
+    }
+
+    private getFilteredTas(): ITaItem[] {
+        const { search, statusFilter, kategorieFilter, sortKey, sortDir } = this.state;
+
+        const filtered = this.props.tas.filter(ta => {
+            // Text search
+            if (search) {
+                const s = search.toLowerCase();
+                const ersteller = (ta.Ersteller?.Title || '').toLowerCase();
+                const matchesSearch =
+                    (ta.Title || '').toLowerCase().includes(s) ||
+                    (ta.field_8 || '').toLowerCase().includes(s) ||
+                    (ta.field_12 || '').toLowerCase().includes(s) ||
+                    (ta.field_16 || '').toLowerCase().includes(s) ||
+                    (ta.field_9 || '').toLowerCase().includes(s) ||
+                    ersteller.includes(s);
+                if (!matchesSearch) return false;
+            }
+            // Status filter
+            if (statusFilter === 'Offen' && ta.Status === 'abgeschlossen') return false;
+            if (statusFilter !== 'Alle' && statusFilter !== 'Offen' && ta.Status !== statusFilter) return false;
+            // Kategorie filter
+            if (kategorieFilter !== 'Alle' && ta.field_16 !== kategorieFilter) return false;
+            return true;
+        });
+
+        // Sort
+        filtered.sort((a, b) => {
+            const aVal = this.getSortValue(a, sortKey);
+            const bVal = this.getSortValue(b, sortKey);
+            const cmp = aVal.localeCompare(bVal, 'de');
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
+
+        return filtered;
+    }
+
+    private toggleSort(key: SortKey): void {
+        this.setState(prev => ({
+            sortKey: key,
+            sortDir: prev.sortKey === key && prev.sortDir === 'asc' ? 'desc' : 'asc'
+        }));
+    }
+
+    private renderSortIcon(key: SortKey): string {
+        if (this.state.sortKey !== key) return ' ↕';
+        return this.state.sortDir === 'asc' ? ' ↑' : ' ↓';
     }
 
     public render(): React.ReactElement<IAlleTasProps> {
         const filtered = this.getFilteredTas();
+        const kategorien = this.getKategorien();
 
         return (
             <>
@@ -88,7 +133,7 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                     <div className={styles.filterBar}>
                         <input
                             className={styles.searchInput}
-                            placeholder="Suchen (TA-Nr., Kunde, Material, Ersteller)..."
+                            placeholder="Suchen (TA-Nr., Kunde, Material, Kategorie, Ersteller)..."
                             value={this.state.search}
                             onChange={(e) => this.setState({ search: e.target.value })}
                         />
@@ -97,49 +142,60 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                             value={this.state.statusFilter}
                             onChange={(e) => this.setState({ statusFilter: e.target.value })}
                         >
+                            <option value="Offen">Offen (ohne abgeschlossen)</option>
                             <option value="Alle">Alle Status</option>
                             {STATUS_VALUES.map(s => (
                                 <option key={s} value={s}>{s}</option>
                             ))}
                         </select>
+                        <select
+                            className={styles.filterSelect}
+                            value={this.state.kategorieFilter}
+                            onChange={(e) => this.setState({ kategorieFilter: e.target.value })}
+                        >
+                            <option value="Alle">Alle Kategorien</option>
+                            {kategorien.map(k => (
+                                <option key={k} value={k}>{k}</option>
+                            ))}
+                        </select>
                     </div>
 
-                    {/* List */}
+                    {/* Table */}
                     {filtered.length === 0 ? (
                         <div className={styles.emptyState}>
                             <span className={styles.emptyIcon}></span>
                             <span>Keine TAs gefunden</span>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <div className={`${styles.listRow} ${styles.listRowAlleTas}`} style={{ background: 'transparent', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'default', paddingBottom: 8 }}>
-                                <span className={styles.listRowBold}>TA-Nr.</span>
-                                <span className={styles.listRowMuted}>Kunde</span>
-                                <span className={styles.listRowMuted}>Material</span>
-                                <span className={styles.listRowMuted}>Verantwortlich</span>
-                                <span className={styles.listRowMuted}>Prio</span>
-                                <span className={styles.listRowMuted}>Verschiebung</span>
-                                <span className={styles.listRowMuted}>Termin</span>
-                                <span style={{ textAlign: 'center' }}>Status</span>
-                            </div>
-                            {filtered.map(ta => (
-                                <div
-                                    key={ta.ID}
-                                    className={`${styles.listRow} ${styles.listRowAlleTas}`}
-                                    onClick={() => this.props.onSelectTa(ta.ID)}
-                                >
-                                    <span className={styles.listRowBold}>{ta.Title}</span>
-                                    <span className={styles.listRowMuted}>{ta.field_8 || '–'}</span>
-                                    <span className={styles.listRowMuted}>{ta.field_12 || '–'}</span>
-                                    <span className={styles.listRowMuted} title={ta.Verantwortlicher?.Title}>{ta.Verantwortlicher?.Title || '–'}</span>
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: prioLabel(ta.field_13).color }}>{prioLabel(ta.field_13).text}</span>
-                                    <span className={styles.listRowWarn}>{ta.field_21 || '–'}</span>
-                                    <span className={styles.listRowMuted}>{ta.field_6 || '–'}</span>
-                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                        <StatusPill status={ta.Status || ''} />
-                                    </div>
-                                </div>
-                            ))}
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className={styles.taTable}>
+                                <thead>
+                                    <tr>
+                                        <th onClick={() => this.toggleSort('Title')}>TA-Nr.{this.renderSortIcon('Title')}</th>
+                                        <th onClick={() => this.toggleSort('Ersteller')}>Ersteller{this.renderSortIcon('Ersteller')}</th>
+                                        <th onClick={() => this.toggleSort('Kunde')}>Kunde{this.renderSortIcon('Kunde')}</th>
+                                        <th onClick={() => this.toggleSort('Material')}>Material{this.renderSortIcon('Material')}</th>
+                                        <th onClick={() => this.toggleSort('Kategorie')}>Kategorie{this.renderSortIcon('Kategorie')}</th>
+                                        <th onClick={() => this.toggleSort('Verantwortlicher')}>Verantw.{this.renderSortIcon('Verantwortlicher')}</th>
+                                        <th onClick={() => this.toggleSort('Termin')}>Termin{this.renderSortIcon('Termin')}</th>
+                                        <th onClick={() => this.toggleSort('Status')}>Status{this.renderSortIcon('Status')}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map(ta => (
+                                        <tr key={ta.ID} onClick={() => this.props.onSelectTa(ta.ID)}>
+                                            <td><b>{ta.Title}</b></td>
+                                            <td title={ta.Ersteller?.Title}>{getInitials(ta.Ersteller?.Title)}</td>
+                                            <td>{ta.field_8 || '–'}</td>
+                                            <td>{ta.field_12 || '–'}</td>
+                                            <td>{ta.field_16 || '–'}</td>
+                                            <td title={ta.Verantwortlicher?.Title}>{getInitials(ta.Verantwortlicher?.Title)}</td>
+                                            <td>{ta.field_6 ? new Date(ta.field_6).toLocaleDateString('de-DE') : '–'}</td>
+                                            <td><StatusPill status={ta.Status || ''} /></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>

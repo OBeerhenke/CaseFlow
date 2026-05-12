@@ -1157,6 +1157,62 @@ $radius-pill: 13px;
   }
 }
 
+/* ─── TA Table (Alle TAs) ────────────────────────── */
+.taTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+
+  th, td {
+    padding: 8px 10px;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  th {
+    color: $text-muted;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    background: $bg-light;
+    z-index: 1;
+
+    &:hover {
+      color: $accent;
+    }
+  }
+
+  td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    color: $text-main;
+  }
+
+  tbody tr {
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: rgba($accent, 0.06);
+    }
+  }
+
+  /* Column widths */
+  th:nth-child(1), td:nth-child(1) { width: 110px; } /* TA-Nr. */
+  th:nth-child(2), td:nth-child(2) { width: 60px; }  /* Ersteller */
+  th:nth-child(6), td:nth-child(6) { width: 70px; }  /* Verantw. */
+  th:nth-child(7), td:nth-child(7) { width: 90px; }  /* Termin */
+  th:nth-child(8), td:nth-child(8) { width: 130px; } /* Status */
+}
+
 /* ─── Mobile Responsive ──────────────────────────── */
 @media (max-width: 640px) {
 
@@ -1272,6 +1328,16 @@ $radius-pill: 13px;
     > :nth-child(5),
     > :nth-child(6),
     > :nth-child(7) {
+      display: none;
+    }
+  }
+
+  /* TA Table mobile: hide Ersteller, Material, Kategorie, Verantw. columns */
+  .taTable {
+    th:nth-child(2), td:nth-child(2),
+    th:nth-child(4), td:nth-child(4),
+    th:nth-child(5), td:nth-child(5),
+    th:nth-child(6), td:nth-child(6) {
       display: none;
     }
   }
