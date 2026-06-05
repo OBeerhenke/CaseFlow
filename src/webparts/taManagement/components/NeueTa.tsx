@@ -629,20 +629,17 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                             </div>
                             <div className={styles.formField}>
                                 <label className={styles.formLabel}>Priorität</label>
-                                {(() => {
-                                    const p = this.state.prioritaet;
-                                    const label = p === '3' ? '▲ Hoch' : p === '2' ? '● Mittel' : p === '1' ? '▼ Niedrig' : 'Ohne Prio';
-                                    const color = p === '3' ? '#EF4444' : p === '2' ? '#F59E0B' : p === '1' ? '#6B7280' : '#CBD5E1';
-                                    return (
-                                        <div
-                                            className={styles.formInput}
-                                            style={{ display: 'flex', alignItems: 'center', gap: 8, color, fontWeight: 600, fontSize: 14, background: '#f8fafc', cursor: 'default' }}
-                                        >
-                                            {label}
-                                            <span style={{ fontSize: 11, fontWeight: 400, color: '#94a3b8', marginLeft: 'auto' }}>aus Projektliste (VPS)</span>
-                                        </div>
-                                    );
-                                })()}
+                                <select
+                                    className={styles.formSelect}
+                                    value={this.state.prioritaet}
+                                    onChange={(e) => this.setState({ prioritaet: e.target.value })}
+                                    style={{ fontWeight: 600, color: this.state.prioritaet === '3' ? '#EF4444' : this.state.prioritaet === '2' ? '#F59E0B' : this.state.prioritaet === '1' ? '#6B7280' : '#CBD5E1' }}
+                                >
+                                    <option value="">Ohne Prio</option>
+                                    <option value="1">▼ Niedrig</option>
+                                    <option value="2">● Mittel</option>
+                                    <option value="3">▲ Hoch</option>
+                                </select>
                             </div>
                         </div>
 

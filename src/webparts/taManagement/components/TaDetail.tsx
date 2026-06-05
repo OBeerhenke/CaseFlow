@@ -5,6 +5,14 @@ import { SharePointService } from '../services/SharePointService';
 import StatusPill from './StatusPill';
 import Modal from './Modal';
 
+/** Format ISO date string (e.g. "2026-04-20T07:00:00Z") to German locale "20.04.2026" */
+function formatDate(value: string | undefined | null): string {
+    if (!value) return '–';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 export interface ITaDetailProps {
     ta: ITaItem;
     onBack: () => void;
@@ -280,7 +288,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                 Verantwortlich: <strong>{ta.Verantwortlicher?.Title || '–'}</strong>
                             </span>
                             <span style={{ color: 'rgb(100, 116, 139)', fontSize: 12 }}>
-                                Erstellt: {ta.field_4 || '–'}
+                                Erstellt: {formatDate(ta.field_4)}
                             </span>
                         </div>
                     </div>
@@ -291,15 +299,15 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                         <div className={styles.detailGrid}>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Wunschtermin</span>
-                                <span className={styles.detailValue}>{ta.field_5 || '–'}</span>
+                                <span className={styles.detailValue}>{formatDate(ta.field_5)}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Geplanter Termin</span>
-                                <span className={styles.detailValue}>{ta.field_6 || '–'}</span>
+                                <span className={styles.detailValue}>{formatDate(ta.field_6)}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Ursprünglicher Termin</span>
-                                <span className={styles.detailValue}>{ta.field_22 || '–'}</span>
+                                <span className={styles.detailValue}>{formatDate(ta.field_22)}</span>
                             </div>
                         </div>
 
@@ -421,6 +429,22 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Kategorie</span>
                                 <span className={styles.detailValue}>{ta.field_16 || '–'}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                                <span className={styles.detailLabel}>SOP</span>
+                                <span className={styles.detailValue}>{ta.SOP || '–'}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                                <span className={styles.detailLabel}>SegCode</span>
+                                <span className={styles.detailValue}>{ta.SegCode || '–'}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                                <span className={styles.detailLabel}>Antwort in</span>
+                                <span className={styles.detailValue}>{ta.AntwortIn || '–'}</span>
+                            </div>
+                            <div className={styles.detailItem}>
+                                <span className={styles.detailLabel}>Zielpreis</span>
+                                <span className={styles.detailValue}>{ta.Zielpreis != null ? ta.Zielpreis.toLocaleString('de-DE') + ' €' : '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Priorität</span>

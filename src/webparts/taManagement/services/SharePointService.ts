@@ -41,7 +41,7 @@ export class SharePointService {
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
-                'Aufgabenstellung',
+                'Aufgabenstellung', 'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )
@@ -101,6 +101,7 @@ export class SharePointService {
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
+                'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )
@@ -118,6 +119,7 @@ export class SharePointService {
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
+                'Aufgabenstellung', 'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
                 'Ersteller/Title', 'Ersteller/EMail',
                 'Verantwortlicher/Title', 'Verantwortlicher/EMail'
             )

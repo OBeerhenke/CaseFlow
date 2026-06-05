@@ -29,6 +29,10 @@ export interface ITaItem {
   Modified?: string;
   Aufgabenstellung?: string; // Aufgabenstellung (Note)
   Projektnummer?: number;    // VPro-Nummer aus Projektliste
+  SOP?: string;              // SOP (Beginn Datum)
+  SegCode?: string;          // Segment-Code
+  AntwortIn?: string;        // Antwort in (Deutsch/Englisch)
+  Zielpreis?: number;        // Zielpreis
 }
 
 export interface IKategorieItem {
