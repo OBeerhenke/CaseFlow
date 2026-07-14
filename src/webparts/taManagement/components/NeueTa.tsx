@@ -78,6 +78,20 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
         };
     }
 
+    private normalizeIsoDateInput(value: string): string {
+        if (!value) return '';
+        const match = value.match(/^(\d{0,4})(?:-(\d{0,2}))?(?:-(\d{0,2}))?/);
+        if (!match) return '';
+
+        const year = (match[1] || '').slice(0, 4);
+        const month = (match[2] || '').slice(0, 2);
+        const day = (match[3] || '').slice(0, 2);
+
+        if (!month && !day) return year;
+        if (!day) return `${year}-${month}`;
+        return `${year}-${month}-${day}`;
+    }
+
     public async componentDidMount(): Promise<void> {
         try {
             // Load Kategorien dynamically from SharePoint list instead of hardcoded options
@@ -261,7 +275,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
     }
 
     private handleSubmit = async (): Promise<void> => {
-        if (!this.state.kunde) return;
+        if (!this.state.kunde || !this.state.wunschtermin || !this.state.kategorie) return;
         this.setState({ saving: true });
 
         let finalVerantwortlicherId = this.state.verantwortlicherId;
@@ -301,14 +315,15 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
     }
 
     public render(): React.ReactElement<INeueTaProps> {
-        const { saving, kunde, wunschtermin } = this.state;
+        const { saving, kunde, wunschtermin, kategorie } = this.state;
 
-        const isFormValid = !!kunde && !!wunschtermin;
+        const isFormValid = !!kunde && !!wunschtermin && !!kategorie;
         let missingFieldsText = '';
         if (!isFormValid) {
             const missing = [];
             if (!kunde) missing.push('Kunde');
             if (!wunschtermin) missing.push('Wunschtermin');
+            if (!kategorie) missing.push('Kategorie');
             missingFieldsText = `Bitte fülle noch folgende Pflichtfelder aus: ${missing.join(', ')}`;
         }
 
@@ -434,7 +449,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                         </div>
 
                         <div className={styles.formField}>
-                            <label className={styles.formLabel}>Kategorie</label>
+                            <label className={styles.formLabel}>Kategorie <span style={{ color: '#ef4444' }}>*</span></label>
                             <select
                                 className={styles.formSelect}
                                 value={this.state.kategorie}
@@ -615,7 +630,12 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
                                             className={styles.dateInput}
                                             value={wtIso}
                                             onChange={(e) => {
-                                                const parts = e.target.value.split('-');
+                                                const normalized = this.normalizeIsoDateInput(e.target.value);
+                                                if (normalized !== e.target.value) {
+                                                    e.currentTarget.value = normalized;
+                                                }
+
+                                                const parts = normalized.split('-');
                                                 if (parts.length === 3) {
                                                     this.setState({ wunschtermin: `${parts[2]}.${parts[1]}.${parts[0]}` });
                                                 } else {

@@ -13,6 +13,20 @@ interface IModalState {
     selectedGrund: string;
 }
 
+function normalizeIsoDateInput(value: string): string {
+    if (!value) return '';
+    const match = value.match(/^(\d{0,4})(?:-(\d{0,2}))?(?:-(\d{0,2}))?/);
+    if (!match) return '';
+
+    const year = (match[1] || '').slice(0, 4);
+    const month = (match[2] || '').slice(0, 2);
+    const day = (match[3] || '').slice(0, 2);
+
+    if (!month && !day) return year;
+    if (!day) return `${year}-${month}`;
+    return `${year}-${month}-${day}`;
+}
+
 export default class Modal extends React.Component<IModalProps, IModalState> {
     constructor(props: IModalProps) {
         super(props);
@@ -36,7 +50,13 @@ export default class Modal extends React.Component<IModalProps, IModalState> {
                             type="date"
                             className={styles.dateInput}
                             value={this.state.neuerTermin}
-                            onChange={(e) => this.setState({ neuerTermin: e.target.value })}
+                            onChange={(e) => {
+                                const normalized = normalizeIsoDateInput(e.target.value);
+                                if (normalized !== e.target.value) {
+                                    e.currentTarget.value = normalized;
+                                }
+                                this.setState({ neuerTermin: normalized });
+                            }}
                         />
                     </div>
 

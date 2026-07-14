@@ -15,6 +15,8 @@ import Settings from './Settings';
 interface IAppState {
   currentView: AppView;
   selectedTaId: number | undefined;
+  previousView: AppView | undefined;
+  previousFilterStatus: string;
   filterStatus: string;
   tas: ITaItem[];
   projekte: IProjektItem[];
@@ -33,6 +35,8 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
     this.state = {
       currentView: AppView.Dashboard,
       selectedTaId: undefined,
+      previousView: undefined,
+      previousFilterStatus: '',
       filterStatus: '',
       tas: [],
       projekte: [],
@@ -83,16 +87,31 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
 
   private selectTa = (id: number): void => {
     this.setState({
+      previousView: this.state.currentView,
+      previousFilterStatus: this.state.filterStatus,
       currentView: AppView.TaDetail,
       selectedTaId: id
     });
   }
 
   private goBack = (): void => {
+    if (this.state.currentView === AppView.TaDetail && this.state.previousView) {
+      this.setState({
+        currentView: this.state.previousView,
+        selectedTaId: undefined,
+        filterStatus: this.state.previousFilterStatus,
+        previousView: undefined,
+        previousFilterStatus: ''
+      });
+      return;
+    }
+
     this.setState({
       currentView: AppView.Dashboard,
       selectedTaId: undefined,
-      filterStatus: ''
+      filterStatus: '',
+      previousView: undefined,
+      previousFilterStatus: ''
     });
   }
 

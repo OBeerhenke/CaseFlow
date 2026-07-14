@@ -50,6 +50,20 @@ interface ITaDetailState {
 export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailState> {
     private fileInputRef = React.createRef<HTMLInputElement>();
 
+    private normalizeIsoDateInput(value: string): string {
+        if (!value) return '';
+        const match = value.match(/^(\d{0,4})(?:-(\d{0,2}))?(?:-(\d{0,2}))?/);
+        if (!match) return '';
+
+        const year = (match[1] || '').slice(0, 4);
+        const month = (match[2] || '').slice(0, 2);
+        const day = (match[3] || '').slice(0, 2);
+
+        if (!month && !day) return year;
+        if (!day) return `${year}-${month}`;
+        return `${year}-${month}-${day}`;
+    }
+
     constructor(props: ITaDetailProps) {
         super(props);
         this.state = {
@@ -355,7 +369,13 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                             className={styles.formInput}
                                             style={{ width: '100%' }}
                                             value={this.state.termin}
-                                            onChange={(e) => this.setState({ termin: e.target.value })}
+                                            onChange={(e) => {
+                                                const normalized = this.normalizeIsoDateInput(e.target.value);
+                                                if (normalized !== e.target.value) {
+                                                    e.currentTarget.value = normalized;
+                                                }
+                                                this.setState({ termin: normalized });
+                                            }}
                                         />
                                     </div>
                                 </div>
