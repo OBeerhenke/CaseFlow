@@ -6,11 +6,23 @@ import StatusPill from './StatusPill';
 type SortKey = 'Title' | 'Ersteller' | 'Kunde' | 'Material' | 'Kategorie' | 'Verantwortlicher' | 'Termin' | 'Status';
 type SortDir = 'asc' | 'desc';
 
-const getInitials = (name?: string): string => {
-    if (!name) return '–';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return name.substring(0, 2).toUpperCase();
+const getAccountKuerzel = (emailOrLogin?: string, fallbackName?: string): string => {
+    const raw = (emailOrLogin || '').trim();
+    if (raw) {
+        const claimPart = raw.includes('|') ? (raw.split('|').pop() || raw) : raw;
+        const slashPart = claimPart.includes('\\') ? (claimPart.split('\\').pop() || claimPart) : claimPart;
+        const localPart = slashPart.includes('@') ? slashPart.split('@')[0] : slashPart;
+        const normalized = localPart.replace(/[^a-zA-Z0-9]/g, '');
+        if (normalized) return normalized.substring(0, 6).toUpperCase();
+    }
+
+    if (fallbackName) {
+        const parts = fallbackName.trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    }
+
+    return '–';
 };
 
 export interface IAlleTasProps {
@@ -185,11 +197,11 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                                     {filtered.map(ta => (
                                         <tr key={ta.ID} onClick={() => this.props.onSelectTa(ta.ID)}>
                                             <td><b>{ta.Title}</b></td>
-                                            <td title={ta.Ersteller?.Title}>{getInitials(ta.Ersteller?.Title)}</td>
+                                            <td title={ta.Ersteller?.Title}>{getAccountKuerzel(ta.Ersteller?.EMail, ta.Ersteller?.Title)}</td>
                                             <td>{ta.field_8 || '–'}</td>
                                             <td>{ta.field_12 || '–'}</td>
                                             <td>{ta.field_16 || '–'}</td>
-                                            <td title={ta.Verantwortlicher?.Title}>{getInitials(ta.Verantwortlicher?.Title)}</td>
+                                            <td title={ta.Verantwortlicher?.Title}>{getAccountKuerzel(ta.Verantwortlicher?.EMail, ta.Verantwortlicher?.Title)}</td>
                                             <td>{ta.field_6 ? new Date(ta.field_6).toLocaleDateString('de-DE') : '–'}</td>
                                             <td><StatusPill status={ta.Status || ''} /></td>
                                         </tr>

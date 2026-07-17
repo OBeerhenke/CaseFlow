@@ -145,35 +145,25 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     }
 
     private getUserKuerzel(): string {
-        const loginRaw = (this.props.currentUserLoginName || '').toLowerCase();
-        const withoutClaim = loginRaw.includes('|') ? (loginRaw.split('|').pop() || loginRaw) : loginRaw;
-        const localPart = withoutClaim.includes('@') ? withoutClaim.split('@')[0] : withoutClaim;
-        const loginTokens = localPart.split(/[^a-z0-9]+/).filter(Boolean);
-
-        if (loginTokens.length >= 2) {
-            return (loginTokens[0][0] + loginTokens[loginTokens.length - 1][0]).toUpperCase();
-        }
-        if (loginTokens.length === 1) {
-            return loginTokens[0].substring(0, 2).toUpperCase();
-        }
-
-        const displayName = this.props.currentUserDisplayName || '';
-        const nameTokens = displayName.split(/\s+/).filter(Boolean);
-        if (nameTokens.length >= 2) {
-            return (nameTokens[0][0] + nameTokens[nameTokens.length - 1][0]).toUpperCase();
-        }
-        if (nameTokens.length === 1) {
-            return nameTokens[0].substring(0, 2).toUpperCase();
-        }
-
-        return 'NA';
+        return this.getAccountKuerzel(this.props.currentUserLoginName, this.props.currentUserDisplayName);
     }
 
-    private getInitialsFromName(name?: string): string {
-        if (!name) return 'NA';
-        const parts = name.trim().split(/\s+/).filter(Boolean);
-        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    private getAccountKuerzel(emailOrLogin?: string, fallbackName?: string): string {
+        const raw = (emailOrLogin || '').trim();
+        if (raw) {
+            const claimPart = raw.includes('|') ? (raw.split('|').pop() || raw) : raw;
+            const slashPart = claimPart.includes('\\') ? (claimPart.split('\\').pop() || claimPart) : claimPart;
+            const localPart = slashPart.includes('@') ? slashPart.split('@')[0] : slashPart;
+            const normalized = localPart.replace(/[^a-zA-Z0-9]/g, '');
+            if (normalized) return normalized.substring(0, 6).toUpperCase();
+        }
+
+        if (fallbackName) {
+            const parts = fallbackName.trim().split(/\s+/).filter(Boolean);
+            if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        }
+
         return 'NA';
     }
 
@@ -206,7 +196,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
         let current: IBemerkungEntry | null = null;
         const legacyTimestamp = this.getLegacyTimestamp();
-        const legacyKuerzel = this.getInitialsFromName(this.props.ta.Ersteller?.Title);
+        const legacyKuerzel = this.getAccountKuerzel(this.props.ta.Ersteller?.EMail, this.props.ta.Ersteller?.Title);
 
         const pushCurrent = (): void => {
             if (!current) return;
@@ -247,7 +237,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     private splitLegacyMixedEntries(entries: IBemerkungEntry[]): IBemerkungEntry[] {
         const result: IBemerkungEntry[] = [];
         const legacyTimestamp = this.getLegacyTimestamp();
-        const legacyKuerzel = this.getInitialsFromName(this.props.ta.Ersteller?.Title);
+        const legacyKuerzel = this.getAccountKuerzel(this.props.ta.Ersteller?.EMail, this.props.ta.Ersteller?.Title);
 
         for (const entry of entries) {
             const lines = entry.text
