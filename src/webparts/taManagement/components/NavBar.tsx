@@ -14,7 +14,7 @@ const NavBar: React.FC<INavBarProps> = ({ activeView, onNavigate }) => {
         { view: AppView.NeueTa, iconName: 'Add', label: 'Neue TA' },
         { view: AppView.AlleTas, iconName: 'BulletedList', label: 'Alle TAs' },
         { view: AppView.Statistik, iconName: 'BarChartVertical', label: 'Statistik' },
-        { view: AppView.TerminPlanen, iconName: 'Calendar', label: 'Termine' },
+        { view: AppView.TerminPlanen, iconName: 'Calendar', label: 'Planen' },
         { view: AppView.Settings, iconName: 'Settings', label: 'Einstellungen' },
     ];
 

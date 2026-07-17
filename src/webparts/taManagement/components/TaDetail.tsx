@@ -21,10 +21,13 @@ export interface ITaDetailProps {
     onSetTermin?: (id: number, termin: string, verantwortlicherId?: number, delayReason?: string) => Promise<void>;
     onSearchUsers?: (query: string) => Promise<any[]>;
     onEnsureUser?: (login: string) => Promise<number>;
+    currentUserDisplayName: string;
+    currentUserLoginName: string;
 }
 
 interface ITaDetailState {
-    bemerkung: string;
+    bemerkungHistorie: string;
+    neueBemerkung: string;
     status: string;
     showModal: boolean;
     saving: boolean;
@@ -47,6 +50,12 @@ interface ITaDetailState {
     uploadingFile: boolean;
 }
 
+interface IBemerkungEntry {
+    timestamp: string;
+    kuerzel: string;
+    text: string;
+}
+
 export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailState> {
     private fileInputRef = React.createRef<HTMLInputElement>();
 
@@ -67,7 +76,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     constructor(props: ITaDetailProps) {
         super(props);
         this.state = {
-            bemerkung: props.ta.field_2 || '',
+            bemerkungHistorie: props.ta.field_2 || '',
+            neueBemerkung: '',
             status: props.ta.Status || '',
             showModal: false,
             saving: false,
@@ -134,11 +144,171 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
         }
     }
 
+    private getUserKuerzel(): string {
+        const loginRaw = (this.props.currentUserLoginName || '').toLowerCase();
+        const withoutClaim = loginRaw.includes('|') ? (loginRaw.split('|').pop() || loginRaw) : loginRaw;
+        const localPart = withoutClaim.includes('@') ? withoutClaim.split('@')[0] : withoutClaim;
+        const loginTokens = localPart.split(/[^a-z0-9]+/).filter(Boolean);
+
+        if (loginTokens.length >= 2) {
+            return (loginTokens[0][0] + loginTokens[loginTokens.length - 1][0]).toUpperCase();
+        }
+        if (loginTokens.length === 1) {
+            return loginTokens[0].substring(0, 2).toUpperCase();
+        }
+
+        const displayName = this.props.currentUserDisplayName || '';
+        const nameTokens = displayName.split(/\s+/).filter(Boolean);
+        if (nameTokens.length >= 2) {
+            return (nameTokens[0][0] + nameTokens[nameTokens.length - 1][0]).toUpperCase();
+        }
+        if (nameTokens.length === 1) {
+            return nameTokens[0].substring(0, 2).toUpperCase();
+        }
+
+        return 'NA';
+    }
+
+    private getInitialsFromName(name?: string): string {
+        if (!name) return 'NA';
+        const parts = name.trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        return 'NA';
+    }
+
+    private getLegacyTimestamp(): string {
+        const created = this.props.ta.field_4;
+        if (!created) return this.formatBemerkungTimestamp(new Date());
+
+        const createdDate = new Date(created);
+        if (!isNaN(createdDate.getTime())) return this.formatBemerkungTimestamp(createdDate);
+
+        const parts = created.split('.');
+        if (parts.length === 3) {
+            const fallback = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+            if (!isNaN(fallback.getTime())) return this.formatBemerkungTimestamp(fallback);
+        }
+
+        return this.formatBemerkungTimestamp(new Date());
+    }
+
+    private formatBemerkungTimestamp(date: Date): string {
+        const d = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const t = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        return `${d} ${t}`;
+    }
+
+    private parseBemerkungEntries(history: string): IBemerkungEntry[] {
+        const lines = (history || '').split(/\r?\n/);
+        const entries: IBemerkungEntry[] = [];
+        const headerRegex = /^\[(\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2})\]\s\[([^\]]+)\]\s?(.*)$/;
+
+        let current: IBemerkungEntry | null = null;
+        const legacyTimestamp = this.getLegacyTimestamp();
+        const legacyKuerzel = this.getInitialsFromName(this.props.ta.Ersteller?.Title);
+
+        const pushCurrent = (): void => {
+            if (!current) return;
+            const text = current.text.trim();
+            if (text) entries.push({ ...current, text });
+            current = null;
+        };
+
+        for (const line of lines) {
+            const headerMatch = line.match(headerRegex);
+            if (headerMatch) {
+                pushCurrent();
+                current = {
+                    timestamp: headerMatch[1],
+                    kuerzel: headerMatch[2],
+                    text: headerMatch[3] || ''
+                };
+                continue;
+            }
+
+            if (!current) {
+                if (!line.trim()) continue;
+                current = {
+                    timestamp: legacyTimestamp,
+                    kuerzel: legacyKuerzel,
+                    text: line
+                };
+                continue;
+            }
+
+            current.text = current.text ? `${current.text}\n${line}` : line;
+        }
+
+        pushCurrent();
+        return this.splitLegacyMixedEntries(entries);
+    }
+
+    private splitLegacyMixedEntries(entries: IBemerkungEntry[]): IBemerkungEntry[] {
+        const result: IBemerkungEntry[] = [];
+        const legacyTimestamp = this.getLegacyTimestamp();
+        const legacyKuerzel = this.getInitialsFromName(this.props.ta.Ersteller?.Title);
+
+        for (const entry of entries) {
+            const lines = entry.text
+                .split(/\r?\n/)
+                .map(l => l.trim())
+                .filter(Boolean);
+
+            if (lines.length <= 1) {
+                result.push({ ...entry, text: entry.text.trim() });
+                continue;
+            }
+
+            // Legacy migration: previously appended comments could contain
+            // one new headered line plus older plain-text lines.
+            result.push({ ...entry, text: lines[0] });
+
+            for (let i = 1; i < lines.length; i++) {
+                result.push({
+                    timestamp: legacyTimestamp,
+                    kuerzel: legacyKuerzel,
+                    text: lines[i]
+                });
+            }
+        }
+
+        return result;
+    }
+
+    private serializeBemerkungEntries(entries: IBemerkungEntry[]): string {
+        return entries
+            .filter(e => e.text.trim())
+            .map(e => `[${e.timestamp}] [${e.kuerzel}] ${e.text.trim()}`)
+            .join('\n\n');
+    }
+
+    private buildBemerkungHistoryPayload(): { nextHistory: string; changed: boolean } {
+        const existingEntries = this.parseBemerkungEntries(this.state.bemerkungHistorie);
+        const normalizedExisting = this.serializeBemerkungEntries(existingEntries);
+
+        const newText = this.state.neueBemerkung.trim();
+        let nextHistory = normalizedExisting;
+
+        if (newText) {
+            const newEntry: IBemerkungEntry = {
+                timestamp: this.formatBemerkungTimestamp(new Date()),
+                kuerzel: this.getUserKuerzel(),
+                text: newText
+            };
+            nextHistory = this.serializeBemerkungEntries([newEntry, ...existingEntries]);
+        }
+
+        return {
+            nextHistory,
+            changed: nextHistory !== this.state.bemerkungHistorie
+        };
+    }
+
     private handleSave = async (): Promise<void> => {
         this.setState({ saving: true });
         try {
             const updates: Partial<Record<string, string | number | undefined>> = {
-                field_2: this.state.bemerkung,
                 Status: this.state.status,
                 // Save priority + cost fields
                 field_13: this.state.prioritaet ? parseInt(this.state.prioritaet, 10) : undefined,
@@ -146,6 +316,11 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                 field_18: this.state.istKosten ? parseFloat(this.state.istKosten.replace(',', '.')) : undefined,
                 field_19: this.state.geplanteKosten ? parseFloat(this.state.geplanteKosten.replace(',', '.')) : undefined,
             };
+
+            const bemerkungPayload = this.buildBemerkungHistoryPayload();
+            if (bemerkungPayload.changed) {
+                updates.field_2 = bemerkungPayload.nextHistory;
+            }
 
             // If completing the TA, set Erledigungsdatum to today
             if (this.state.status === 'abgeschlossen' && this.props.ta.Status !== 'abgeschlossen') {
@@ -165,6 +340,10 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             }
 
             await this.props.onSave(this.props.ta.ID, updates);
+
+            if (bemerkungPayload.changed) {
+                this.setState({ bemerkungHistorie: bemerkungPayload.nextHistory, neueBemerkung: '' });
+            }
         } finally {
             this.setState({ saving: false });
         }
@@ -244,14 +423,23 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
             // Also save costs + bemerkung in the same action
             const updates: Partial<Record<string, string | number | undefined>> = {
-                field_2: this.state.bemerkung,
                 field_17: this.state.budgetBeiStart || undefined,
                 field_18: this.state.istKosten ? parseFloat(this.state.istKosten.replace(',', '.')) : undefined,
                 field_19: this.state.geplanteKosten ? parseFloat(this.state.geplanteKosten.replace(',', '.')) : undefined,
             };
+
+            const bemerkungPayload = this.buildBemerkungHistoryPayload();
+            if (bemerkungPayload.changed) {
+                updates.field_2 = bemerkungPayload.nextHistory;
+            }
+
             await this.props.onSave(this.props.ta.ID, updates);
+
+            if (bemerkungPayload.changed) {
+                this.setState({ bemerkungHistorie: bemerkungPayload.nextHistory, neueBemerkung: '' });
+            }
         } finally {
-            this.setState({ savingTermin: false, verantwortlicherSearchText: '', verantwortlicherLoginName: null, termin: '', showDelayModal: false, delayReason: '' });
+            this.setState({ savingTermin: false, verantwortlicherSearchText: '', verantwortlicherLoginName: null, termin: '', showDelayModal: false, delayReason: '', neueBemerkung: '' });
         }
     }
 
@@ -280,6 +468,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
     public render(): React.ReactElement<ITaDetailProps> {
         const { ta } = this.props;
+        const bemerkungEntries = this.parseBemerkungEntries(this.state.bemerkungHistorie);
 
         return (
             <>
@@ -555,10 +744,37 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                     {/* Bemerkungen */}
                     <div className={styles.formGroup}>
                         <h4 className={styles.formGroupTitle}>Bemerkungen</h4>
+                        <span className={styles.detailLabel}>Historie</span>
+                        {bemerkungEntries.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                                {bemerkungEntries.map((entry, index) => (
+                                    <div
+                                        key={`${entry.timestamp}-${entry.kuerzel}-${index}`}
+                                        style={{
+                                            border: '1px solid rgba(148, 163, 184, 0.35)',
+                                            borderRadius: 10,
+                                            padding: '10px 12px',
+                                            background: 'rgba(255, 255, 255, 0.5)'
+                                        }}
+                                    >
+                                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4, fontWeight: 600 }}>
+                                            {entry.timestamp} | {entry.kuerzel}
+                                        </div>
+                                        <div style={{ fontSize: 14, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+                                            {entry.text}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p style={{ margin: '6px 0 10px 0', color: '#64748b', fontSize: 13 }}>Keine Bemerkungen vorhanden</p>
+                        )}
+                        <span className={styles.detailLabel}>Neue Bemerkung hinzufügen</span>
                         <textarea
                             className={styles.formTextarea}
-                            value={this.state.bemerkung}
-                            onChange={(e) => this.setState({ bemerkung: e.target.value })}
+                            value={this.state.neueBemerkung}
+                            onChange={(e) => this.setState({ neueBemerkung: e.target.value })}
+                            placeholder="Neue Bemerkung eingeben. Beim Speichern wird sie mit Datum/Uhrzeit und Kürzel oben angefügt."
                         />
                     </div>
 

@@ -6,6 +6,7 @@ export interface ITaManagementProps {
   environmentMessage: string;
   hasTeamsContext: boolean;
   userDisplayName: string;
+  userLoginName: string;
 }
 
 export interface IAppState {

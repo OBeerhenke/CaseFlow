@@ -228,6 +228,8 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
             onSetTermin={this.handleSetTermin}
             onSearchUsers={async (q) => await this.svc.searchUsers(q)}
             onEnsureUser={async (login) => await this.svc.ensureUser(login)}
+            currentUserDisplayName={this.props.userDisplayName}
+            currentUserLoginName={this.props.userLoginName}
           />
         );
       }
