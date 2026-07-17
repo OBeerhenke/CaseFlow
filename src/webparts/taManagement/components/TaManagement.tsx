@@ -24,6 +24,7 @@ interface IAppState {
   kpi: IKpiData;
   loading: boolean;
   toast: string;
+  currentUserNickname: string;
 }
 
 export default class TaManagement extends React.Component<ITaManagementProps, IAppState> {
@@ -43,12 +44,19 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
       users: [],
       kpi: { overdue: 0, plan: 0, onTrack: 0, review: 0 },
       loading: true,
-      toast: ''
+      toast: '',
+      currentUserNickname: ''
     };
   }
 
   public async componentDidMount(): Promise<void> {
     await this.loadData();
+    try {
+      const nn = await this.svc.getNickname(this.props.userLoginName);
+      if (nn) this.setState({ currentUserNickname: nn });
+    } catch (e) {
+      console.warn('Failed to load current user nickname', e);
+    }
   }
 
   private async loadData(): Promise<void> {
@@ -62,6 +70,9 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
 
       // Auto-detect overdue
       await this.svc.evaluateStatuses(tas);
+
+      // Enrich TAs with SharePoint user nicknames (short codes)
+      await this.svc.enrichWithNicknames(tas);
 
       const kpi = await this.svc.getKpiData(tas);
       this.setState({ tas, projekte, users, kpi, loading: false });
@@ -230,6 +241,7 @@ export default class TaManagement extends React.Component<ITaManagementProps, IA
             onEnsureUser={async (login) => await this.svc.ensureUser(login)}
             currentUserDisplayName={this.props.userDisplayName}
             currentUserLoginName={this.props.userLoginName}
+            currentUserNickname={this.state.currentUserNickname}
           />
         );
       }

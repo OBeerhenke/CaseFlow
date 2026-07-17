@@ -23,6 +23,7 @@ export interface ITaDetailProps {
     onEnsureUser?: (login: string) => Promise<number>;
     currentUserDisplayName: string;
     currentUserLoginName: string;
+    currentUserNickname: string;
 }
 
 interface ITaDetailState {
@@ -145,6 +146,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     }
 
     private getUserKuerzel(): string {
+        const nickname = (this.props.currentUserNickname || '').trim();
+        if (nickname) return nickname.toUpperCase();
         return this.getAccountKuerzel(this.props.currentUserLoginName, this.props.currentUserDisplayName);
     }
 
@@ -154,8 +157,12 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             const claimPart = raw.includes('|') ? (raw.split('|').pop() || raw) : raw;
             const slashPart = claimPart.includes('\\') ? (claimPart.split('\\').pop() || claimPart) : claimPart;
             const localPart = slashPart.includes('@') ? slashPart.split('@')[0] : slashPart;
+            const tokens = localPart.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+            if (tokens.length >= 2) return (tokens[0][0] + tokens[tokens.length - 1][0]).toUpperCase();
+
             const normalized = localPart.replace(/[^a-zA-Z0-9]/g, '');
-            if (normalized) return normalized.substring(0, 6).toUpperCase();
+            if (normalized.length > 0 && normalized.length <= 4) return normalized.toUpperCase();
+            if (normalized.length >= 2) return normalized.substring(0, 2).toUpperCase();
         }
 
         if (fallbackName) {
@@ -196,7 +203,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
         let current: IBemerkungEntry | null = null;
         const legacyTimestamp = this.getLegacyTimestamp();
-        const legacyKuerzel = this.getAccountKuerzel(this.props.ta.Ersteller?.EMail, this.props.ta.Ersteller?.Title);
+        const legacyKuerzel = (this.props.ta.Ersteller?.Nickname || '').trim().toUpperCase()
+            || this.getAccountKuerzel(this.props.ta.Ersteller?.Name || this.props.ta.Ersteller?.EMail, this.props.ta.Ersteller?.Title);
 
         const pushCurrent = (): void => {
             if (!current) return;
@@ -237,7 +245,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     private splitLegacyMixedEntries(entries: IBemerkungEntry[]): IBemerkungEntry[] {
         const result: IBemerkungEntry[] = [];
         const legacyTimestamp = this.getLegacyTimestamp();
-        const legacyKuerzel = this.getAccountKuerzel(this.props.ta.Ersteller?.EMail, this.props.ta.Ersteller?.Title);
+        const legacyKuerzel = (this.props.ta.Ersteller?.Nickname || '').trim().toUpperCase()
+            || this.getAccountKuerzel(this.props.ta.Ersteller?.Name || this.props.ta.Ersteller?.EMail, this.props.ta.Ersteller?.Title);
 
         for (const entry of entries) {
             const lines = entry.text

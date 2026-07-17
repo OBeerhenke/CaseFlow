@@ -12,8 +12,12 @@ const getAccountKuerzel = (emailOrLogin?: string, fallbackName?: string): string
         const claimPart = raw.includes('|') ? (raw.split('|').pop() || raw) : raw;
         const slashPart = claimPart.includes('\\') ? (claimPart.split('\\').pop() || claimPart) : claimPart;
         const localPart = slashPart.includes('@') ? slashPart.split('@')[0] : slashPart;
+        const tokens = localPart.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+        if (tokens.length >= 2) return (tokens[0][0] + tokens[tokens.length - 1][0]).toUpperCase();
+
         const normalized = localPart.replace(/[^a-zA-Z0-9]/g, '');
-        if (normalized) return normalized.substring(0, 6).toUpperCase();
+        if (normalized.length > 0 && normalized.length <= 4) return normalized.toUpperCase();
+        if (normalized.length >= 2) return normalized.substring(0, 2).toUpperCase();
     }
 
     if (fallbackName) {
@@ -23,6 +27,12 @@ const getAccountKuerzel = (emailOrLogin?: string, fallbackName?: string): string
     }
 
     return '–';
+};
+
+const getKuerzel = (u?: { Title?: string; EMail?: string; Name?: string; Nickname?: string }): string => {
+    const nick = (u?.Nickname || '').trim();
+    if (nick) return nick.toUpperCase();
+    return getAccountKuerzel(u?.Name || u?.EMail, u?.Title);
 };
 
 export interface IAlleTasProps {
@@ -86,13 +96,19 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
             if (search) {
                 const s = search.toLowerCase();
                 const ersteller = (ta.Ersteller?.Title || '').toLowerCase();
+                const erstellerNick = (ta.Ersteller?.Nickname || '').toLowerCase();
+                const verantwortlicher = (ta.Verantwortlicher?.Title || '').toLowerCase();
+                const verantwortlicherNick = (ta.Verantwortlicher?.Nickname || '').toLowerCase();
                 const matchesSearch =
                     (ta.Title || '').toLowerCase().includes(s) ||
                     (ta.field_8 || '').toLowerCase().includes(s) ||
                     (ta.field_12 || '').toLowerCase().includes(s) ||
                     (ta.field_16 || '').toLowerCase().includes(s) ||
                     (ta.field_9 || '').toLowerCase().includes(s) ||
-                    ersteller.includes(s);
+                    ersteller.includes(s) ||
+                    erstellerNick.includes(s) ||
+                    verantwortlicher.includes(s) ||
+                    verantwortlicherNick.includes(s);
                 if (!matchesSearch) return false;
             }
             // Status filter
@@ -197,11 +213,11 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                                     {filtered.map(ta => (
                                         <tr key={ta.ID} onClick={() => this.props.onSelectTa(ta.ID)}>
                                             <td><b>{ta.Title}</b></td>
-                                            <td title={ta.Ersteller?.Title}>{getAccountKuerzel(ta.Ersteller?.EMail, ta.Ersteller?.Title)}</td>
+                                            <td title={ta.Ersteller?.Title}>{getKuerzel(ta.Ersteller)}</td>
                                             <td>{ta.field_8 || '–'}</td>
                                             <td>{ta.field_12 || '–'}</td>
                                             <td>{ta.field_16 || '–'}</td>
-                                            <td title={ta.Verantwortlicher?.Title}>{getAccountKuerzel(ta.Verantwortlicher?.EMail, ta.Verantwortlicher?.Title)}</td>
+                                            <td title={ta.Verantwortlicher?.Title}>{getKuerzel(ta.Verantwortlicher)}</td>
                                             <td>{ta.field_6 ? new Date(ta.field_6).toLocaleDateString('de-DE') : '–'}</td>
                                             <td><StatusPill status={ta.Status || ''} /></td>
                                         </tr>

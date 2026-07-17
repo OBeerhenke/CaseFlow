@@ -21,11 +21,57 @@ function pad2(n: number): string {
 
 export class SharePointService {
     private static _instance: SharePointService;
+    private _nicknameCache: Map<string, string | null> = new Map();
 
     public static init(context: WebPartContext): void {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sp.setup({ spfxContext: context as any });
         SharePointService._instance = new SharePointService();
+    }
+
+    public async getNickname(loginName: string): Promise<string | undefined> {
+        if (!loginName) return undefined;
+        const cached = this._nicknameCache.get(loginName);
+        if (cached !== undefined) return cached || undefined;
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const props: any = await sp.profiles.getPropertiesFor(loginName);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const list: any[] = props?.UserProfileProperties || [];
+            let nickname: string | undefined;
+            for (const p of list) {
+                const key = p?.Key;
+                if (key === 'SPS-Nickname' || key === 'Nickname') {
+                    const val = (p?.Value || '').toString().trim();
+                    if (val) { nickname = val; break; }
+                }
+            }
+            this._nicknameCache.set(loginName, nickname || null);
+            return nickname;
+        } catch (e) {
+            console.warn('Failed to load nickname for', loginName, e);
+            this._nicknameCache.set(loginName, null);
+            return undefined;
+        }
+    }
+
+    public async enrichWithNicknames(tas: ITaItem[]): Promise<void> {
+        const logins = new Set<string>();
+        for (const t of tas) {
+            if (t.Ersteller?.Name) logins.add(t.Ersteller.Name);
+            if (t.Verantwortlicher?.Name) logins.add(t.Verantwortlicher.Name);
+        }
+        await Promise.all(Array.from(logins).map(l => this.getNickname(l)));
+        for (const t of tas) {
+            if (t.Ersteller?.Name) {
+                const nn = this._nicknameCache.get(t.Ersteller.Name);
+                if (nn) t.Ersteller.Nickname = nn;
+            }
+            if (t.Verantwortlicher?.Name) {
+                const nn = this._nicknameCache.get(t.Verantwortlicher.Name);
+                if (nn) t.Verantwortlicher.Nickname = nn;
+            }
+        }
     }
 
     public static get instance(): SharePointService {
@@ -42,8 +88,8 @@ export class SharePointService {
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
                 'Aufgabenstellung', 'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
-                'Ersteller/Title', 'Ersteller/EMail',
-                'Verantwortlicher/Title', 'Verantwortlicher/EMail'
+                'Ersteller/Title', 'Ersteller/EMail', 'Ersteller/Name',
+                'Verantwortlicher/Title', 'Verantwortlicher/EMail', 'Verantwortlicher/Name'
             )
             .expand('Ersteller', 'Verantwortlicher')
             .top(2000)
@@ -102,8 +148,8 @@ export class SharePointService {
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
                 'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
-                'Ersteller/Title', 'Ersteller/EMail',
-                'Verantwortlicher/Title', 'Verantwortlicher/EMail'
+                'Ersteller/Title', 'Ersteller/EMail', 'Ersteller/Name',
+                'Verantwortlicher/Title', 'Verantwortlicher/EMail', 'Verantwortlicher/Name'
             )
             .expand('Ersteller', 'Verantwortlicher')
             .filter("Status ne 'abgeschlossen'")
@@ -120,8 +166,8 @@ export class SharePointService {
                 'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
                 'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
                 'Aufgabenstellung', 'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
-                'Ersteller/Title', 'Ersteller/EMail',
-                'Verantwortlicher/Title', 'Verantwortlicher/EMail'
+                'Ersteller/Title', 'Ersteller/EMail', 'Ersteller/Name',
+                'Verantwortlicher/Title', 'Verantwortlicher/EMail', 'Verantwortlicher/Name'
             )
             .expand('Ersteller', 'Verantwortlicher')
             .get();

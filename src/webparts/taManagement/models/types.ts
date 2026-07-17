@@ -24,8 +24,8 @@ export interface ITaItem {
   field_22?: string;        // Ursprünglicher Termin
   Erledigungsdatum?: string; // Erledigungsdatum (IST)
   Status?: string;          // Choice: Termin planen | läuft planmäßig | prüfen | überfällig | abgeschlossen
-  Ersteller?: { Title: string; EMail: string };
-  Verantwortlicher?: { Title: string; EMail: string };
+  Ersteller?: { Title: string; EMail: string; Name?: string; Nickname?: string };
+  Verantwortlicher?: { Title: string; EMail: string; Name?: string; Nickname?: string };
   Modified?: string;
   Aufgabenstellung?: string; // Aufgabenstellung (Note)
   Projektnummer?: number;    // VPro-Nummer aus Projektliste

@@ -6,11 +6,33 @@ import StatusPill from './StatusPill';
 type SortKey = 'Title' | 'Ersteller' | 'Kunde' | 'Material' | 'Kategorie' | 'Endtermin' | 'Status';
 type SortDir = 'asc' | 'desc';
 
-const getInitials = (name?: string): string => {
-    if (!name) return '–';
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return name.substring(0, 2).toUpperCase();
+const getAccountKuerzel = (emailOrLogin?: string, fallbackName?: string): string => {
+    const raw = (emailOrLogin || '').trim();
+    if (raw) {
+        const claimPart = raw.includes('|') ? (raw.split('|').pop() || raw) : raw;
+        const slashPart = claimPart.includes('\\') ? (claimPart.split('\\').pop() || claimPart) : claimPart;
+        const localPart = slashPart.includes('@') ? slashPart.split('@')[0] : slashPart;
+        const tokens = localPart.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+        if (tokens.length >= 2) return (tokens[0][0] + tokens[tokens.length - 1][0]).toUpperCase();
+
+        const normalized = localPart.replace(/[^a-zA-Z0-9]/g, '');
+        if (normalized.length > 0 && normalized.length <= 4) return normalized.toUpperCase();
+        if (normalized.length >= 2) return normalized.substring(0, 2).toUpperCase();
+    }
+
+    if (fallbackName) {
+        const parts = fallbackName.trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    }
+
+    return '–';
+};
+
+const getKuerzel = (u?: { Title?: string; EMail?: string; Name?: string; Nickname?: string }): string => {
+    const nick = (u?.Nickname || '').trim();
+    if (nick) return nick.toUpperCase();
+    return getAccountKuerzel(u?.Name || u?.EMail, u?.Title);
 };
 
 export interface ITerminPlanenProps {
@@ -68,13 +90,19 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps, IT
             if (search) {
                 const s = search.toLowerCase();
                 const ersteller = (ta.Ersteller?.Title || '').toLowerCase();
+                const erstellerNick = (ta.Ersteller?.Nickname || '').toLowerCase();
+                const verantwortlicher = (ta.Verantwortlicher?.Title || '').toLowerCase();
+                const verantwortlicherNick = (ta.Verantwortlicher?.Nickname || '').toLowerCase();
                 const matchesSearch =
                     (ta.Title || '').toLowerCase().includes(s) ||
                     (ta.field_8 || '').toLowerCase().includes(s) ||
                     (ta.field_12 || '').toLowerCase().includes(s) ||
                     (ta.field_16 || '').toLowerCase().includes(s) ||
                     (ta.field_9 || '').toLowerCase().includes(s) ||
-                    ersteller.includes(s);
+                    ersteller.includes(s) ||
+                    erstellerNick.includes(s) ||
+                    verantwortlicher.includes(s) ||
+                    verantwortlicherNick.includes(s);
                 if (!matchesSearch) return false;
             }
 
@@ -172,7 +200,7 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps, IT
                                     {filtered.map(ta => (
                                         <tr key={ta.ID} onClick={() => this.props.onSelectTa(ta.ID)}>
                                             <td><b>{ta.Title}</b></td>
-                                            <td title={ta.Ersteller?.Title}>{getInitials(ta.Ersteller?.Title)}</td>
+                                            <td title={ta.Ersteller?.Title}>{getKuerzel(ta.Ersteller)}</td>
                                             <td>{ta.field_8 || '–'}</td>
                                             <td>{ta.field_12 || '–'}</td>
                                             <td>{ta.field_16 || '–'}</td>
