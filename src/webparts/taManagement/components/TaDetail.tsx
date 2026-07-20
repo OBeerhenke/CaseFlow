@@ -197,7 +197,11 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     }
 
     private parseBemerkungEntries(history: string): IBemerkungEntry[] {
-        const lines = (history || '').split(/\r?\n/);
+        // Strip trailing Power Automate marker '#' (single lone '#' at end of the
+        // whole history). The flow removes it after sending mail; this guards the
+        // brief window where the item is reloaded before the flow ran.
+        const cleaned = (history || '').replace(/\s*#\s*$/, '');
+        const lines = cleaned.split(/\r?\n/);
         const entries: IBemerkungEntry[] = [];
         const headerRegex = /^\[(\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2})\]\s\[([^\]]+)\]\s?(.*)$/;
 
@@ -282,12 +286,13 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             .join('\n\n');
     }
 
-    private buildBemerkungHistoryPayload(): { nextHistory: string; changed: boolean } {
+    private buildBemerkungHistoryPayload(): { nextHistory: string; savePayload: string; changed: boolean } {
         const existingEntries = this.parseBemerkungEntries(this.state.bemerkungHistorie);
         const normalizedExisting = this.serializeBemerkungEntries(existingEntries);
 
         const newText = this.state.neueBemerkung.trim();
         let nextHistory = normalizedExisting;
+        let hasNewEntry = false;
 
         if (newText) {
             const newEntry: IBemerkungEntry = {
@@ -296,10 +301,17 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                 text: newText
             };
             nextHistory = this.serializeBemerkungEntries([newEntry, ...existingEntries]);
+            hasNewEntry = true;
         }
+
+        // Trailing '#' is a marker for the Power Automate flow: a new remark was
+        // added. The flow sends the notification mail and strips the '#' afterwards.
+        // Local state keeps the clean version so the UI never displays the marker.
+        const savePayload = hasNewEntry ? nextHistory + '#' : nextHistory;
 
         return {
             nextHistory,
+            savePayload,
             changed: nextHistory !== this.state.bemerkungHistorie
         };
     }
@@ -318,7 +330,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
             const bemerkungPayload = this.buildBemerkungHistoryPayload();
             if (bemerkungPayload.changed) {
-                updates.field_2 = bemerkungPayload.nextHistory;
+                updates.field_2 = bemerkungPayload.savePayload;
             }
 
             // If completing the TA, set Erledigungsdatum to today
@@ -429,7 +441,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
             const bemerkungPayload = this.buildBemerkungHistoryPayload();
             if (bemerkungPayload.changed) {
-                updates.field_2 = bemerkungPayload.nextHistory;
+                updates.field_2 = bemerkungPayload.savePayload;
             }
 
             await this.props.onSave(this.props.ta.ID, updates);
