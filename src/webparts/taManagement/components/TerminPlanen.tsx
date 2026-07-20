@@ -192,7 +192,7 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps, IT
                                         <th onClick={() => this.toggleSort('Kunde')}>Kunde{this.renderSortIcon('Kunde')}</th>
                                         <th onClick={() => this.toggleSort('Material')}>Material{this.renderSortIcon('Material')}</th>
                                         <th onClick={() => this.toggleSort('Kategorie')}>Kategorie{this.renderSortIcon('Kategorie')}</th>
-                                        <th onClick={() => this.toggleSort('Endtermin')}>Endtermin{this.renderSortIcon('Endtermin')}</th>
+                                        <th onClick={() => this.toggleSort('Endtermin')}>Erstelltermin{this.renderSortIcon('Endtermin')}</th>
                                         <th onClick={() => this.toggleSort('Status')}>Status{this.renderSortIcon('Status')}</th>
                                     </tr>
                                 </thead>
