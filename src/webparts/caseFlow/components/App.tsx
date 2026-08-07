@@ -5,6 +5,7 @@ import { ICaseItem, IProjektItem, IKpiData, INewCaseForm, AppView } from '../mod
 import { SharePointService } from '../services/SharePointService';
 import { ConfigService } from '../services/ConfigService';
 import { LabelService } from '../services/LabelService';
+import { ThemeService } from '../services/ThemeService';
 import NavBar from './NavBar';
 import Dashboard from './Dashboard';
 import NewCase from './NewCase';
@@ -290,7 +291,7 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
     const { loading, currentView, toast } = this.state;
 
     return (
-      <div className={styles.caseFlowApp}>
+      <div className={styles.caseFlowApp} style={ThemeService.buildStyle(this.state.config)}>
         {loading ? (
           <div className={styles.loading}>
             <div className={styles.spinner} />

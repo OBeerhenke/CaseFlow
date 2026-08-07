@@ -32,6 +32,8 @@ interface ISettingsState {
     entityLabelSingular: string;
     entityLabelPlural: string;
     projectsCsvPath: string;
+    primaryColor: string;
+    logoUrl: string;
     savingConfig: boolean;
 }
 
@@ -52,6 +54,8 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
             entityLabelSingular: 'Anfrage',
             entityLabelPlural: 'Anfragen',
             projectsCsvPath: '',
+            primaryColor: '#3B82F6',
+            logoUrl: '',
             savingConfig: false
         };
     }

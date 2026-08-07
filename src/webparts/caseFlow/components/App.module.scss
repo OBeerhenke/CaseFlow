@@ -5,7 +5,11 @@ $bg-light: rgb(248, 250, 252);
 $bg-card: rgba(255, 255, 255, 0.9);
 $glass-bg: rgba(255, 255, 255, 0.85);
 $glass-border: rgba(0, 0, 0, 0.08);
+// $accent is defined as a SCSS fallback for var(--cf-accent) below.
+// At runtime ThemeService sets --cf-accent and --cf-accent-rgb on
+// .caseFlowApp from ConfigService keys PrimaryColor / AccentColorRgb.
 $accent: rgb(59, 130, 246);
+$accent-rgb: 59, 130, 246;
 $text-main: rgb(15, 23, 42);
 $text-muted: rgb(100, 116, 139);
 
@@ -69,6 +73,18 @@ $radius-pill: 13px;
   border-bottom: 1px solid $glass-border;
 }
 
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerLogo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
 .headerTitle {
   font-size: 20px;
   font-weight: 700;
@@ -83,7 +99,7 @@ $radius-pill: 13px;
 .backButton {
   background: none;
   border: none;
-  color: $accent;
+  color: var(--cf-accent, $accent);
   font-size: 14px;
   cursor: pointer;
   padding: 4px 8px;
@@ -378,10 +394,10 @@ $radius-pill: 13px;
 
 .navActive {
   background: rgba(59, 130, 246, 0.1);
-  color: $accent;
+  color: var(--cf-accent, $accent);
 
   .navIcon :global(.ms-Icon) {
-    color: $accent !important;
+    color: var(--cf-accent, $accent) !important;
   }
 
   &:hover {
@@ -427,7 +443,7 @@ $radius-pill: 13px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, $accent, #6366f1);
+  background: linear-gradient(135deg, var(--cf-accent, $accent), var(--cf-accent, $accent));
   color: white;
   display: flex;
   align-items: center;
@@ -500,7 +516,7 @@ $radius-pill: 13px;
   transition: border-color 0.15s ease;
 
   &:focus {
-    border-color: $accent;
+    border-color: var(--cf-accent, $accent);
     background: rgba(0, 0, 0, 0.06);
   }
 
@@ -553,7 +569,7 @@ $radius-pill: 13px;
 
 /* ─── Buttons ────────────────────────────────────── */
 .btnPrimary {
-  background: $accent;
+  background: var(--cf-accent, $accent);
   color: white;
   border: none;
   border-radius: 12px;
@@ -565,7 +581,7 @@ $radius-pill: 13px;
   transition: all 0.15s ease;
 
   &:hover {
-    background: lighten($accent, 8%);
+    background: var(--cf-accent, $accent);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   }
 
@@ -704,7 +720,7 @@ $radius-pill: 13px;
   }
 
   input[type="radio"] {
-    accent-color: $accent;
+    accent-color: var(--cf-accent, $accent);
     width: 16px;
     height: 16px;
   }
@@ -796,7 +812,7 @@ $radius-pill: 13px;
   width: 32px;
   height: 32px;
   border: 3px solid $glass-border;
-  border-top-color: $accent;
+  border-top-color: var(--cf-accent, $accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-right: 12px;
@@ -1059,7 +1075,7 @@ $radius-pill: 13px;
 
 .reasonBarFill {
   height: 100%;
-  background: linear-gradient(90deg, $accent, lighten($accent, 15%));
+  background: linear-gradient(90deg, var(--cf-accent, $accent), var(--cf-accent, $accent));
   border-radius: 10px;
   transition: width 0.4s ease;
   min-width: 4px;
@@ -1104,7 +1120,7 @@ $radius-pill: 13px;
   min-width: 600px;
 
   &:hover {
-    background: rgba($accent, 0.04);
+    background: rgba(var(--cf-accent-rgb, $accent-rgb), 0.04);
   }
 
   &:last-child {
@@ -1115,7 +1131,7 @@ $radius-pill: 13px;
 .statsColCase {
   flex: 0 0 120px;
   font-weight: 600;
-  color: $accent;
+  color: var(--cf-accent, $accent);
 }
 
 .statsColKunde {
@@ -1141,7 +1157,7 @@ $radius-pill: 13px;
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: $accent;
+  background: var(--cf-accent, $accent);
   color: white;
   border: none;
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
@@ -1187,7 +1203,7 @@ $radius-pill: 13px;
     z-index: 1;
 
     &:hover {
-      color: $accent;
+      color: var(--cf-accent, $accent);
     }
   }
 
@@ -1201,7 +1217,7 @@ $radius-pill: 13px;
     transition: background 0.15s ease;
 
     &:hover {
-      background: rgba($accent, 0.06);
+      background: rgba(var(--cf-accent-rgb, $accent-rgb), 0.06);
     }
   }
 

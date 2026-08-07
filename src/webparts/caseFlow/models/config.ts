@@ -115,7 +115,15 @@ export const CONFIG_KEYS = {
   ENTITY_LABEL_SINGULAR: 'EntityLabelSingular',
   ENTITY_LABEL_PLURAL: 'EntityLabelPlural',
   /** Server-relative path to the project-data CSV file (e.g. "/sites/{site}/{library}/Projektliste.csv"). */
-  PROJECTS_CSV_PATH: 'ProjectsCsvPath'
+  PROJECTS_CSV_PATH: 'ProjectsCsvPath',
+  /** Hex color for the primary accent (e.g. "#3B82F6"). */
+  PRIMARY_COLOR: 'PrimaryColor',
+  /** Comma-separated RGB values for the accent, for rgba() usage (e.g. "59, 130, 246"). */
+  ACCENT_COLOR_RGB: 'AccentColorRgb',
+  /** Absolute or relative URL to a customer logo image. */
+  LOGO_URL: 'LogoUrl',
+  /** Page background color (hex). */
+  BG_COLOR: 'BgColor'
 } as const;
 
 /** Default values for well-known config keys, applied when a key is missing. */

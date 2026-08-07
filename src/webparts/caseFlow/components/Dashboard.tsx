@@ -3,6 +3,7 @@ import styles from './App.module.scss';
 import { ICaseItem, IKpiData, AppView } from '../models/types';
 import { StatusConfigService } from '../services/StatusConfigService';
 import { LabelService } from '../services/LabelService';
+import { ThemeService } from '../services/ThemeService';
 import KpiTile from './KpiTile';
 
 export interface IDashboardProps {
@@ -20,7 +21,12 @@ const Dashboard: React.FC<IDashboardProps> = ({ cases, kpi, config, userName, on
         <>
             {/* Header */}
             <div className={styles.header}>
-                <span className={styles.headerTitle}>CaseFlow</span>
+                <div className={styles.headerLeft}>
+                    {ThemeService.getLogoUrl(config) && (
+                        <img src={ThemeService.getLogoUrl(config)} alt="Logo" className={styles.headerLogo} />
+                    )}
+                    <span className={styles.headerTitle}>CaseFlow</span>
+                </div>
                 <span className={styles.headerRight}>
                     Willkommen, {userName}
                 </span>
