@@ -1,5 +1,5 @@
 /** SharePoint TA-Liste item */
-export interface ITaItem {
+export interface ICaseItem {
   ID: number;
   Title: string;           // TA-Nr.
   field_1?: string;         // StatusOld (legacy)
@@ -68,7 +68,7 @@ export interface IProjektItem {
 }
 
 /** New TA form data */
-export interface INewTaForm {
+export interface INewCaseForm {
   kunde: string;
   endkunde: string;
   kontaktNr: string;
@@ -99,7 +99,7 @@ export const STATUS_VALUES = [
   'abgeschlossen'
 ] as const;
 
-export type TaStatus = typeof STATUS_VALUES[number];
+export type CaseStatus = typeof STATUS_VALUES[number];
 
 /** Postponement reasons */
 export const VERSCHIEBUNG_GRUENDE = [
@@ -131,11 +131,11 @@ export const INITIAL_DELAY_REASONS = [
 /** View enum for navigation */
 export enum AppView {
   Dashboard = 'dashboard',
-  NeueTa = 'neue-ta',
-  TerminPlanen = 'termin-planen',
-  TaDetail = 'ta-detail',
-  AlleTas = 'alle-tas',
-  Statistik = 'statistik',
+  NewCase = 'new-case',
+  Schedule = 'termin-planen',
+  CaseDetail = 'case-detail',
+  CaseList = 'case-list',
+  Analytics = 'analytics',
   Settings = 'settings'
 }
 

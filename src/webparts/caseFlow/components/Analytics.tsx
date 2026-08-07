@@ -1,14 +1,14 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
-import { ITaItem } from '../models/types';
+import styles from './App.module.scss';
+import { ICaseItem } from '../models/types';
 
-export interface IStatistikProps {
-    tas: ITaItem[];
+export interface IAnalyticsProps {
+    cases: ICaseItem[];
     onBack: () => void;
-    onSelectTa: (id: number) => void;
+    onSelectCase: (id: number) => void;
 }
 
-interface IStatistikState {
+interface IAnalyticsState {
     zeitraum: 'alle' | 'jahr' | 'quartal';
     jahr: number;
 }
@@ -45,22 +45,22 @@ function parseDate(s?: string): Date | null {
 }
 
 interface ITermintreueRow {
-    ta: ITaItem;
+    caseItem: ICaseItem;
     istVsWunsch: number | null;      // IST-Erledigung vs. Wunschtermin
     wunschVsPlan: number | null;     // Wunschtermin vs. geplanter Termin
     istVsOriginal: number | null;    // IST vs. ursprünglich geplanter Termin
     istVsVerschoben: number | null;  // IST vs. verschobener (aktueller) Termin
 }
 
-function computeRow(ta: ITaItem): ITermintreueRow {
+function computeRow(caseItem: ICaseItem): ITermintreueRow {
     // Fallback: wenn kein Erledigungsdatum gesetzt ist (Alt-TAs), nutze Modified
-    const erledigung = parseDate(ta.Erledigungsdatum) || (ta.Status === 'abgeschlossen' ? parseDate(ta.Modified) : null);
-    const wunsch = parseDate(ta.field_5);
-    const geplant = parseDate(ta.field_6);
-    const original = parseDate(ta.field_22);
+    const erledigung = parseDate(caseItem.Erledigungsdatum) || (caseItem.Status === 'abgeschlossen' ? parseDate(caseItem.Modified) : null);
+    const wunsch = parseDate(caseItem.field_5);
+    const geplant = parseDate(caseItem.field_6);
+    const original = parseDate(caseItem.field_22);
 
     return {
-        ta,
+        caseItem,
         istVsWunsch: erledigung && wunsch ? workdayDiff(erledigung, wunsch) : null,
         wunschVsPlan: wunsch && geplant ? workdayDiff(geplant, wunsch) : null,
         istVsOriginal: erledigung && original ? workdayDiff(erledigung, original) : null,
@@ -92,8 +92,8 @@ const DiffCell: React.FC<{ value: number | null }> = ({ value }) => {
     );
 };
 
-export default class Statistik extends React.Component<IStatistikProps, IStatistikState> {
-    constructor(props: IStatistikProps) {
+export default class Analytics extends React.Component<IAnalyticsProps, IAnalyticsState> {
+    constructor(props: IAnalyticsProps) {
         super(props);
         this.state = {
             zeitraum: 'alle',
@@ -101,9 +101,9 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
         };
     }
 
-    private getFilteredTas(): ITaItem[] {
+    private getFilteredCases(): ICaseItem[] {
         const { zeitraum, jahr } = this.state;
-        const completed = this.props.tas.filter(t => t.Status === 'abgeschlossen');
+        const completed = this.props.cases.filter(t => t.Status === 'abgeschlossen');
 
         if (zeitraum === 'alle') return completed;
 
@@ -122,7 +122,7 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
     }
 
     private getStatusDistribution(): { label: string; count: number; color: string; pct: string }[] {
-        const all = this.props.tas;
+        const all = this.props.cases;
         const total = all.length;
         return [
             { label: 'Überfällig', count: all.filter(t => t.Status === 'überfällig').length, color: '#EF4444', pct: '' },
@@ -135,7 +135,7 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
 
     private getVerschiebungsStats(): { grund: string; count: number }[] {
         const gruende = new Map<string, number>();
-        this.props.tas.forEach(t => {
+        this.props.cases.forEach(t => {
             if (t.field_21) {
                 gruende.set(t.field_21, (gruende.get(t.field_21) || 0) + 1);
             }
@@ -145,8 +145,8 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
             .sort((a, b) => b.count - a.count);
     }
 
-    public render(): React.ReactElement<IStatistikProps> {
-        const filtered = this.getFilteredTas();
+    public render(): React.ReactElement<IAnalyticsProps> {
+        const filtered = this.getFilteredCases();
         const rows = filtered.map(computeRow);
         const statusDist = this.getStatusDistribution();
         const verschiebungen = this.getVerschiebungsStats();
@@ -163,16 +163,16 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
         const avgAbweichungWunsch = istVsWunschVals.length > 0 ? avg(istVsWunschVals).toFixed(1) : '–';
         const avgAbweichungPlan = istVsVerschobenVals.length > 0 ? avg(istVsVerschobenVals).toFixed(1) : '–';
 
-        const totalTas = this.props.tas.length;
+        const totalCases = this.props.cases.length;
         const completedCount = filtered.length;
-        const verschobenCount = this.props.tas.filter(t => t.field_22).length;
+        const verschobenCount = this.props.cases.filter(t => t.field_22).length;
 
         return (
             <>
                 <div className={styles.header}>
                     <div className={styles.headerWithBack}>
                         <button className={styles.backButton} onClick={this.props.onBack}>← Zurück</button>
-                        <span className={styles.headerTitle}>Statistik & Termintreue</span>
+                        <span className={styles.headerTitle}>Analytics & Termintreue</span>
                     </div>
                 </div>
 
@@ -202,7 +202,7 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
                         <div className={styles.statCard}>
                             <span className={styles.statValue} style={{ color: '#3B82F6' }}>{completedCount}</span>
                             <span className={styles.statLabel}>Abgeschlossen</span>
-                            <span className={styles.statSub}>von {totalTas} gesamt</span>
+                            <span className={styles.statSub}>von {totalCases} gesamt</span>
                         </div>
                         <div className={styles.statCard}>
                             <span className={styles.statValue} style={{ color: '#F59E0B' }}>{verschobenCount}</span>
@@ -263,7 +263,7 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
                                         key={s.label}
                                         className={styles.stackedSegment}
                                         style={{
-                                            width: `${pct(s.count, totalTas)}%`,
+                                            width: `${pct(s.count, totalCases)}%`,
                                             backgroundColor: s.color
                                         }}
                                         title={`${s.label}: ${s.count} (${s.pct}%)`}
@@ -321,7 +321,7 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
                         ) : (
                             <div className={styles.statsTable}>
                                 <div className={styles.statsTableHead}>
-                                    <span className={styles.statsColTa}>TA-Nr.</span>
+                                    <span className={styles.statsColCase}>TA-Nr.</span>
                                     <span className={styles.statsColKunde}>Kunde</span>
                                     <span className={styles.statsColNum}>IST↔Wunsch</span>
                                     <span className={styles.statsColNum}>Wunsch↔Plan</span>
@@ -330,12 +330,12 @@ export default class Statistik extends React.Component<IStatistikProps, IStatist
                                 </div>
                                 {rows.map(r => (
                                     <div
-                                        key={r.ta.ID}
+                                        key={r.caseItem.ID}
                                         className={styles.statsTableRow}
-                                        onClick={() => this.props.onSelectTa(r.ta.ID)}
+                                        onClick={() => this.props.onSelectCase(r.caseItem.ID)}
                                     >
-                                        <span className={styles.statsColTa}>{r.ta.Title}</span>
-                                        <span className={styles.statsColKunde}>{r.ta.field_8 || '–'}</span>
+                                        <span className={styles.statsColCase}>{r.caseItem.Title}</span>
+                                        <span className={styles.statsColKunde}>{r.caseItem.field_8 || '–'}</span>
                                         <DiffCell value={r.istVsWunsch} />
                                         <DiffCell value={r.wunschVsPlan} />
                                         <DiffCell value={r.istVsOriginal} />

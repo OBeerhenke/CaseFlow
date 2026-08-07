@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
-  "id": "55b1326d-e0fa-4d5f-b4e5-1b729f30168a",
-  "alias": "TaManagementWebPart",
+  "id": "31711eb0-ae39-4e4a-acc7-e8e67566b86d",
+  "alias": "CaseFlowWebPart",
   "componentType": "WebPart",
 
   // The "*" signifies that the version should be taken from the package.json
@@ -19,11 +19,11 @@
   "preconfiguredEntries": [{
     "groupId": "5c03119e-3074-46fd-976b-c60198311f70", // Advanced
     "group": { "default": "Advanced" },
-    "title": { "default": "TaManagement" },
-    "description": { "default": "TA-Management Dashboard" },
+    "title": { "default": "CaseFlow" },
+    "description": { "default": "CaseFlow Vorgangs-Management Dashboard" },
     "officeFabricIconFontName": "Page",
     "properties": {
-      "description": "TaManagement"
+      "description": "CaseFlow"
     }
   }]
 }

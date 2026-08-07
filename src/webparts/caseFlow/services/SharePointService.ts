@@ -7,13 +7,15 @@ import '@pnp/sp/files'; // Added import for getFileByServerRelativeUrl / getFile
 import '@pnp/sp/site-users/web';
 import '@pnp/sp/profiles';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
-import { ITaItem, IProjektItem, INewTaForm, IKpiData, IKategorieItem, IKundenAnwendungItem } from '../models/types';
+import { ICaseItem, IProjektItem, INewCaseForm, IKpiData, IKategorieItem, IKundenAnwendungItem } from '../models/types';
 
-const TA_LIST = 'Technische_Anfragen';
-const PROJEKT_LIST = 'Projekt-Liste';
-const KATEGORIEN_LIST = 'TA_Kategorien';
-const KUNDEN_ANWENDUNGEN_LIST = 'TA_Kunden_Anwendungen';
-const CONFIG_LIST = 'TA_Config';
+// NOTE: List names are hardcoded defaults for now. Ticket 2 (Config Layer +
+// Feld-Mapping) replaces these with tenant-configurable values.
+const CASE_LIST = 'CaseFlow_Cases';
+const PROJEKT_LIST = 'CaseFlow_Projects';
+const KATEGORIEN_LIST = 'CaseFlow_Categories';
+const KUNDEN_ANWENDUNGEN_LIST = 'CaseFlow_CustomerApplications';
+const CONFIG_LIST = 'CaseFlow_Config';
 
 function pad2(n: number): string {
     return n < 10 ? '0' + n : '' + n;
@@ -55,14 +57,14 @@ export class SharePointService {
         }
     }
 
-    public async enrichWithNicknames(tas: ITaItem[]): Promise<void> {
+    public async enrichWithNicknames(cases: ICaseItem[]): Promise<void> {
         const logins = new Set<string>();
-        for (const t of tas) {
+        for (const t of cases) {
             if (t.Ersteller?.Name) logins.add(t.Ersteller.Name);
             if (t.Verantwortlicher?.Name) logins.add(t.Verantwortlicher.Name);
         }
         await Promise.all(Array.from(logins).map(l => this.getNickname(l)));
-        for (const t of tas) {
+        for (const t of cases) {
             if (t.Ersteller?.Name) {
                 const nn = this._nicknameCache.get(t.Ersteller.Name);
                 if (nn) t.Ersteller.Nickname = nn;
@@ -80,8 +82,8 @@ export class SharePointService {
 
     // ─── TA-Liste CRUD ─────────────────────────────────
 
-    public async getAllTAs(): Promise<ITaItem[]> {
-        return sp.web.lists.getByTitle(TA_LIST).items
+    public async getAllTAs(): Promise<ICaseItem[]> {
+        return sp.web.lists.getByTitle(CASE_LIST).items
             .select(
                 'ID', 'Title', 'field_1', 'field_2', 'field_4', 'field_5', 'field_6',
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
@@ -140,8 +142,8 @@ export class SharePointService {
         }
     }
 
-    public async getOpenTAs(): Promise<ITaItem[]> {
-        return sp.web.lists.getByTitle(TA_LIST).items
+    public async getOpenTAs(): Promise<ICaseItem[]> {
+        return sp.web.lists.getByTitle(CASE_LIST).items
             .select(
                 'ID', 'Title', 'field_2', 'field_4', 'field_5', 'field_6',
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
@@ -158,8 +160,8 @@ export class SharePointService {
             .get();
     }
 
-    public async getTaById(id: number): Promise<ITaItem> {
-        return sp.web.lists.getByTitle(TA_LIST).items.getById(id)
+    public async getCaseById(id: number): Promise<ICaseItem> {
+        return sp.web.lists.getByTitle(CASE_LIST).items.getById(id)
             .select(
                 'ID', 'Title', 'field_1', 'field_2', 'field_4', 'field_5', 'field_6',
                 'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
@@ -173,7 +175,7 @@ export class SharePointService {
             .get();
     }
 
-    public async createTA(form: INewTaForm, taNr: string): Promise<number> {
+    public async createTA(form: INewCaseForm, caseNr: string): Promise<number> {
         const today = new Date();
         const dateStr = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
 
@@ -193,7 +195,7 @@ export class SharePointService {
         const currentUser = await sp.web.currentUser.get();
 
         const item: any = {
-            Title: taNr,
+            Title: caseNr,
             field_8: form.kunde,
             field_9: form.endkunde,
             field_10: form.kontaktNr ? parseInt(form.kontaktNr, 10) : null,
@@ -226,7 +228,7 @@ export class SharePointService {
         });
 
         try {
-            const result = await sp.web.lists.getByTitle(TA_LIST).items.add(item);
+            const result = await sp.web.lists.getByTitle(CASE_LIST).items.add(item);
             return result.data.ID as number;
         } catch (e: any) {
             console.error("Error creating TA:", e);
@@ -242,19 +244,19 @@ export class SharePointService {
     }
 
     public async updateTA(id: number, fields: Partial<Record<string, string | number | undefined>>): Promise<void> {
-        await sp.web.lists.getByTitle(TA_LIST).items.getById(id).update(fields);
+        await sp.web.lists.getByTitle(CASE_LIST).items.getById(id).update(fields);
     }
 
     public async getAttachments(id: number): Promise<{ FileName: string; ServerRelativeUrl: string }[]> {
-        return sp.web.lists.getByTitle(TA_LIST).items.getById(id).attachmentFiles.get();
+        return sp.web.lists.getByTitle(CASE_LIST).items.getById(id).attachmentFiles.get();
     }
 
     public async addAttachment(id: number, fileName: string, content: ArrayBuffer): Promise<void> {
-        await sp.web.lists.getByTitle(TA_LIST).items.getById(id).attachmentFiles.add(fileName, content);
+        await sp.web.lists.getByTitle(CASE_LIST).items.getById(id).attachmentFiles.add(fileName, content);
     }
 
     public async deleteAttachment(id: number, fileName: string): Promise<void> {
-        await sp.web.lists.getByTitle(TA_LIST).items.getById(id).attachmentFiles.getByName(fileName).delete();
+        await sp.web.lists.getByTitle(CASE_LIST).items.getById(id).attachmentFiles.getByName(fileName).delete();
     }
 
     private convertToIso(dateStr: string): string {
@@ -292,17 +294,17 @@ export class SharePointService {
         await this.updateTA(id, updateData);
     }
 
-    public async getKpiData(tas: ITaItem[]): Promise<IKpiData> {
+    public async getKpiData(cases: ICaseItem[]): Promise<IKpiData> {
         return {
-            overdue: tas.filter(t => t.Status === 'überfällig').length,
-            plan: tas.filter(t => t.Status === 'Termin planen').length,
-            onTrack: tas.filter(t => t.Status === 'läuft planmäßig').length,
-            review: tas.filter(t => t.Status === 'prüfen').length
+            overdue: cases.filter(t => t.Status === 'überfällig').length,
+            plan: cases.filter(t => t.Status === 'Termin planen').length,
+            onTrack: cases.filter(t => t.Status === 'läuft planmäßig').length,
+            review: cases.filter(t => t.Status === 'prüfen').length
         };
     }
 
     /** Auto-detect TA statuses based on planned date and update them if needed */
-    public async evaluateStatuses(tas: ITaItem[]): Promise<number> {
+    public async evaluateStatuses(cases: ICaseItem[]): Promise<number> {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const updates: { id: number; status: string }[] = [];
@@ -310,19 +312,19 @@ export class SharePointService {
         const pruefenTageRaw = await this.getConfigValue('PruefenTage', '3');
         const pruefenTage = parseInt(pruefenTageRaw, 10) || 3;
 
-        for (const ta of tas) {
-            if (ta.Status === 'abgeschlossen') continue;
+        for (const caseItem of cases) {
+            if (caseItem.Status === 'abgeschlossen') continue;
 
-            let expectedStatus = ta.Status;
+            let expectedStatus = caseItem.Status;
 
-            if (!ta.field_6) {
+            if (!caseItem.field_6) {
                 expectedStatus = 'Termin planen';
             } else {
                 let planDate: Date;
-                if (ta.field_6.includes('-')) {
-                    planDate = new Date(ta.field_6);
+                if (caseItem.field_6.includes('-')) {
+                    planDate = new Date(caseItem.field_6);
                 } else {
-                    const parts = ta.field_6.split('.');
+                    const parts = caseItem.field_6.split('.');
                     if (parts.length === 3) {
                         planDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
                     } else {
@@ -343,9 +345,9 @@ export class SharePointService {
                 }
             }
 
-            if (ta.Status !== expectedStatus) {
-                ta.Status = expectedStatus;
-                updates.push({ id: ta.ID, status: expectedStatus });
+            if (caseItem.Status !== expectedStatus) {
+                caseItem.Status = expectedStatus;
+                updates.push({ id: caseItem.ID, status: expectedStatus });
             }
         }
 
@@ -379,14 +381,14 @@ export class SharePointService {
         return result;
     }
 
-    public async getNextTaNumber(): Promise<string> {
+    public async getNextCaseNumber(): Promise<string> {
         const now = new Date();
         const yy = pad2(now.getFullYear() % 100);
         const mm = pad2(now.getMonth() + 1);
         const prefix = `TA${yy}${mm}`;
 
         // Alle TAs des aktuellen Monats abfragen
-        const items = await sp.web.lists.getByTitle(TA_LIST).items
+        const items = await sp.web.lists.getByTitle(CASE_LIST).items
             .select('Title')
             .filter(`startswith(Title,'${prefix}')`)
             .top(5000)

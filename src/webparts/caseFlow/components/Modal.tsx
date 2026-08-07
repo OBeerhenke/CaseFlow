@@ -1,5 +1,5 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
+import styles from './App.module.scss';
 import { VERSCHIEBUNG_GRUENDE } from '../models/types';
 
 export interface IModalProps {

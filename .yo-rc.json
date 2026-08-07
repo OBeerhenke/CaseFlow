@@ -1,22 +1,22 @@
 {
   "@microsoft/generator-sharepoint": {
     "whichFolder": "subdir",
-    "solutionName": "ta-management",
+    "solutionName": "case-flow",
     "environment": "spo",
     "useGulp": false,
     "componentType": "webpart",
     "template": "react",
-    "componentName": "TaManagement",
-    "componentDescription": "TA-Management Dashboard",
+    "componentName": "CaseFlow",
+    "componentDescription": "CaseFlow Vorgangs-Management Dashboard",
     "plusBeta": false,
     "isCreatingSolution": true,
     "nodeVersion": "22.22.0",
     "sdksVersions": {},
     "version": "1.22.2",
-    "libraryName": "ta-management",
-    "libraryId": "1b7cecd5-79a0-468d-b6c3-c2aa4ff2e562",
+    "libraryName": "case-flow",
+    "libraryId": "86ebe504-625c-4a80-bfa0-48c480b8adb1",
     "packageManager": "npm",
-    "solutionShortDescription": "ta-management description",
+    "solutionShortDescription": "CaseFlow — konfigurierbares Vorgangs-Management für SharePoint",
     "skipFeatureDeployment": true,
     "isDomainIsolated": false
   }

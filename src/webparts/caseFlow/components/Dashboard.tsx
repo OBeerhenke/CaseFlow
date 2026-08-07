@@ -1,23 +1,23 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
-import { ITaItem, IKpiData, AppView } from '../models/types';
+import styles from './App.module.scss';
+import { ICaseItem, IKpiData, AppView } from '../models/types';
 import KpiTile from './KpiTile';
 
 export interface IDashboardProps {
-    tas: ITaItem[];
+    cases: ICaseItem[];
     kpi: IKpiData;
     userName: string;
     onNavigate: (view: AppView, filterStatus?: string) => void;
-    onSelectTa: (id: number) => void;
+    onSelectCase: (id: number) => void;
 }
 
-const Dashboard: React.FC<IDashboardProps> = ({ tas, kpi, userName, onNavigate }) => {
+const Dashboard: React.FC<IDashboardProps> = ({ cases, kpi, userName, onNavigate }) => {
 
     return (
         <>
             {/* Header */}
             <div className={styles.header}>
-                <span className={styles.headerTitle}>TA-Management</span>
+                <span className={styles.headerTitle}>CaseFlow</span>
                 <span className={styles.headerRight}>
                     Willkommen, {userName}
                 </span>
@@ -32,28 +32,28 @@ const Dashboard: React.FC<IDashboardProps> = ({ tas, kpi, userName, onNavigate }
                         label="Überfällig"
                         actionLabel="Anzeigen"
                         color="#EF4444"
-                        onClick={() => onNavigate(AppView.AlleTas, 'überfällig')}
+                        onClick={() => onNavigate(AppView.CaseList, 'überfällig')}
                     />
                     <KpiTile
                         count={kpi.plan}
                         label="Termin planen"
                         actionLabel="Planen"
                         color="#3B82F6"
-                        onClick={() => onNavigate(AppView.TerminPlanen)}
+                        onClick={() => onNavigate(AppView.Schedule)}
                     />
                     <KpiTile
                         count={kpi.onTrack}
                         label="Planmäßig"
                         actionLabel="Anzeigen"
                         color="#10B981"
-                        onClick={() => onNavigate(AppView.AlleTas, 'läuft planmäßig')}
+                        onClick={() => onNavigate(AppView.CaseList, 'läuft planmäßig')}
                     />
                     <KpiTile
                         count={kpi.review}
                         label="Prüfen"
                         actionLabel="Anzeigen"
                         color="#F59E0B"
-                        onClick={() => onNavigate(AppView.AlleTas, 'prüfen')}
+                        onClick={() => onNavigate(AppView.CaseList, 'prüfen')}
                     />
                 </div>
 
@@ -61,7 +61,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ tas, kpi, userName, onNavigate }
                 <div className={styles.actionRow}>
                     <div
                         className={styles.actionTileBlue}
-                        onClick={() => onNavigate(AppView.NeueTa)}
+                        onClick={() => onNavigate(AppView.NewCase)}
                         role="button"
                         tabIndex={0}
                     >
@@ -72,7 +72,7 @@ const Dashboard: React.FC<IDashboardProps> = ({ tas, kpi, userName, onNavigate }
                     </div>
                     <div
                         className={styles.actionTileGreen}
-                        onClick={() => onNavigate(AppView.TerminPlanen)}
+                        onClick={() => onNavigate(AppView.Schedule)}
                         role="button"
                         tabIndex={0}
                     >

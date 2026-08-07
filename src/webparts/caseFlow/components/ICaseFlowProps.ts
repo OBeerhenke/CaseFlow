@@ -1,6 +1,6 @@
 import { AppView } from '../models/types';
 
-export interface ITaManagementProps {
+export interface ICaseFlowProps {
   description: string;
   isDarkTheme: boolean;
   environmentMessage: string;
@@ -11,6 +11,6 @@ export interface ITaManagementProps {
 
 export interface IAppState {
   currentView: AppView;
-  selectedTaId: number | undefined;
+  selectedCaseId: number | undefined;
   filterStatus: string;
 }

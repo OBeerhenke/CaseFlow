@@ -8,15 +8,15 @@ import {
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
 
-import TaManagement from './components/TaManagement';
-import { ITaManagementProps } from './components/ITaManagementProps';
+import App from './components/App';
+import { ICaseFlowProps } from './components/ICaseFlowProps';
 import { SharePointService } from './services/SharePointService';
 
-export interface ITaManagementWebPartProps {
+export interface ICaseFlowWebPartProps {
   description: string;
 }
 
-export default class TaManagementWebPart extends BaseClientSideWebPart<ITaManagementWebPartProps> {
+export default class CaseFlowWebPart extends BaseClientSideWebPart<ICaseFlowWebPartProps> {
 
   private _isDarkTheme: boolean = false;
   private _environmentMessage: string = '';
@@ -28,8 +28,8 @@ export default class TaManagementWebPart extends BaseClientSideWebPart<ITaManage
   }
 
   public render(): void {
-    const element: React.ReactElement<ITaManagementProps> = React.createElement(
-      TaManagement,
+    const element: React.ReactElement<ICaseFlowProps> = React.createElement(
+      App,
       {
         description: this.properties.description,
         isDarkTheme: this._isDarkTheme,
@@ -80,7 +80,7 @@ export default class TaManagementWebPart extends BaseClientSideWebPart<ITaManage
     return {
       pages: [
         {
-          header: { description: 'TA-Management Einstellungen' },
+          header: { description: 'CaseFlow Einstellungen' },
           groups: [
             {
               groupName: 'Allgemein',

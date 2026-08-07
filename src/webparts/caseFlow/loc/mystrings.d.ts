@@ -1,4 +1,4 @@
-declare interface ITaManagementWebPartStrings {
+declare interface ICaseFlowWebPartStrings {
   PropertyPaneDescription: string;
   BasicGroupName: string;
   DescriptionFieldLabel: string;
@@ -13,7 +13,7 @@ declare interface ITaManagementWebPartStrings {
   UnknownEnvironment: string;
 }
 
-declare module 'TaManagementWebPartStrings' {
-  const strings: ITaManagementWebPartStrings;
+declare module 'CaseFlowWebPartStrings' {
+  const strings: ICaseFlowWebPartStrings;
   export = strings;
 }

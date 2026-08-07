@@ -2,17 +2,17 @@
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
   "version": "2.0",
   "bundles": {
-    "ta-management-web-part": {
+    "case-flow-web-part": {
       "components": [
         {
-          "entrypoint": "./lib/webparts/taManagement/TaManagementWebPart.js",
-          "manifest": "./src/webparts/taManagement/TaManagementWebPart.manifest.json"
+          "entrypoint": "./lib/webparts/caseFlow/CaseFlowWebPart.js",
+          "manifest": "./src/webparts/caseFlow/CaseFlowWebPart.manifest.json"
         }
       ]
     }
   },
   "externals": {},
   "localizedResources": {
-    "TaManagementWebPartStrings": "lib/webparts/taManagement/loc/{locale}.js"
+    "CaseFlowWebPartStrings": "lib/webparts/caseFlow/loc/{locale}.js"
   }
 }

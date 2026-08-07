@@ -1,5 +1,5 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
+import styles from './App.module.scss';
 import { SharePointService } from '../services/SharePointService';
 import { IKategorieItem, IKundenAnwendungItem } from '../models/types';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';

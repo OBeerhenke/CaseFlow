@@ -1,6 +1,6 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
-import { ITaItem, STATUS_VALUES, INITIAL_DELAY_REASONS } from '../models/types';
+import styles from './App.module.scss';
+import { ICaseItem, STATUS_VALUES, INITIAL_DELAY_REASONS } from '../models/types';
 import { SharePointService } from '../services/SharePointService';
 import StatusPill from './StatusPill';
 import Modal from './Modal';
@@ -13,8 +13,8 @@ function formatDate(value: string | undefined | null): string {
     return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export interface ITaDetailProps {
-    ta: ITaItem;
+export interface ICaseDetailProps {
+    caseItem: ICaseItem;
     onBack: () => void;
     onSave: (id: number, fields: Partial<Record<string, string | number | undefined>>) => Promise<void>;
     onVerschieben: (id: number, neuerTermin: string, grund: string, alterTermin: string, urspruenglicherTermin?: string) => Promise<void>;
@@ -26,7 +26,7 @@ export interface ITaDetailProps {
     currentUserNickname: string;
 }
 
-interface ITaDetailState {
+interface ICaseDetailState {
     bemerkungHistorie: string;
     neueBemerkung: string;
     status: string;
@@ -57,7 +57,7 @@ interface IBemerkungEntry {
     text: string;
 }
 
-export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailState> {
+export default class CaseDetail extends React.Component<ICaseDetailProps, ICaseDetailState> {
     private fileInputRef = React.createRef<HTMLInputElement>();
 
     private normalizeIsoDateInput(value: string): string {
@@ -74,12 +74,12 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
         return `${year}-${month}-${day}`;
     }
 
-    constructor(props: ITaDetailProps) {
+    constructor(props: ICaseDetailProps) {
         super(props);
         this.state = {
-            bemerkungHistorie: props.ta.field_2 || '',
+            bemerkungHistorie: props.caseItem.field_2 || '',
             neueBemerkung: '',
-            status: props.ta.Status || '',
+            status: props.caseItem.Status || '',
             showModal: false,
             saving: false,
             termin: '',
@@ -92,10 +92,10 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             delayReason: '',
             delayThresholdDays: 2,
             // Editable fields init from TA
-            prioritaet: props.ta.field_13 !== undefined && props.ta.field_13 !== null ? props.ta.field_13.toString() : '',
-            budgetBeiStart: props.ta.field_17 || '',
-            istKosten: props.ta.field_18 !== undefined && props.ta.field_18 !== null ? props.ta.field_18.toString() : '',
-            geplanteKosten: props.ta.field_19 !== undefined && props.ta.field_19 !== null ? props.ta.field_19.toString() : '',
+            prioritaet: props.caseItem.field_13 !== undefined && props.caseItem.field_13 !== null ? props.caseItem.field_13.toString() : '',
+            budgetBeiStart: props.caseItem.field_17 || '',
+            istKosten: props.caseItem.field_18 !== undefined && props.caseItem.field_18 !== null ? props.caseItem.field_18.toString() : '',
+            geplanteKosten: props.caseItem.field_19 !== undefined && props.caseItem.field_19 !== null ? props.caseItem.field_19.toString() : '',
             attachments: [],
             uploadingFile: false
         };
@@ -113,7 +113,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
     private async loadAttachments(): Promise<void> {
         try {
-            const attachments = await SharePointService.instance.getAttachments(this.props.ta.ID);
+            const attachments = await SharePointService.instance.getAttachments(this.props.caseItem.ID);
             this.setState({ attachments });
         } catch (e) {
             console.error("Failed to load attachments", e);
@@ -126,7 +126,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const buffer = await file.arrayBuffer();
-                await SharePointService.instance.addAttachment(this.props.ta.ID, file.name, buffer);
+                await SharePointService.instance.addAttachment(this.props.caseItem.ID, file.name, buffer);
             }
             await this.loadAttachments();
         } catch (e) {
@@ -138,7 +138,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
     private handleDeleteAttachment = async (fileName: string): Promise<void> => {
         try {
-            await SharePointService.instance.deleteAttachment(this.props.ta.ID, fileName);
+            await SharePointService.instance.deleteAttachment(this.props.caseItem.ID, fileName);
             await this.loadAttachments();
         } catch (e) {
             console.error("Failed to delete attachment", e);
@@ -175,7 +175,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     }
 
     private getLegacyTimestamp(): string {
-        const created = this.props.ta.field_4;
+        const created = this.props.caseItem.field_4;
         if (!created) return this.formatBemerkungTimestamp(new Date());
 
         const createdDate = new Date(created);
@@ -207,8 +207,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
         let current: IBemerkungEntry | null = null;
         const legacyTimestamp = this.getLegacyTimestamp();
-        const legacyKuerzel = (this.props.ta.Ersteller?.Nickname || '').trim().toUpperCase()
-            || this.getAccountKuerzel(this.props.ta.Ersteller?.Name || this.props.ta.Ersteller?.EMail, this.props.ta.Ersteller?.Title);
+        const legacyKuerzel = (this.props.caseItem.Ersteller?.Nickname || '').trim().toUpperCase()
+            || this.getAccountKuerzel(this.props.caseItem.Ersteller?.Name || this.props.caseItem.Ersteller?.EMail, this.props.caseItem.Ersteller?.Title);
 
         const pushCurrent = (): void => {
             if (!current) return;
@@ -249,8 +249,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
     private splitLegacyMixedEntries(entries: IBemerkungEntry[]): IBemerkungEntry[] {
         const result: IBemerkungEntry[] = [];
         const legacyTimestamp = this.getLegacyTimestamp();
-        const legacyKuerzel = (this.props.ta.Ersteller?.Nickname || '').trim().toUpperCase()
-            || this.getAccountKuerzel(this.props.ta.Ersteller?.Name || this.props.ta.Ersteller?.EMail, this.props.ta.Ersteller?.Title);
+        const legacyKuerzel = (this.props.caseItem.Ersteller?.Nickname || '').trim().toUpperCase()
+            || this.getAccountKuerzel(this.props.caseItem.Ersteller?.Name || this.props.caseItem.Ersteller?.EMail, this.props.caseItem.Ersteller?.Title);
 
         for (const entry of entries) {
             const lines = entry.text
@@ -334,7 +334,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
             }
 
             // If completing the TA, set Erledigungsdatum to today
-            if (this.state.status === 'abgeschlossen' && this.props.ta.Status !== 'abgeschlossen') {
+            if (this.state.status === 'abgeschlossen' && this.props.caseItem.Status !== 'abgeschlossen') {
                 const today = new Date();
                 const pad2 = (n: number): string => n < 10 ? '0' + n : '' + n;
                 updates.Erledigungsdatum = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
@@ -350,7 +350,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                 }
             }
 
-            await this.props.onSave(this.props.ta.ID, updates);
+            await this.props.onSave(this.props.caseItem.ID, updates);
 
             if (bemerkungPayload.changed) {
                 this.setState({ bemerkungHistorie: bemerkungPayload.nextHistory, neueBemerkung: '' });
@@ -393,12 +393,12 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
         const planDate = new Date(this.state.termin); // e.g. "2026-03-05" from input type="date"
         let createdDate = new Date();
-        if (this.props.ta.field_4) {
-            const cd = new Date(this.props.ta.field_4);
+        if (this.props.caseItem.field_4) {
+            const cd = new Date(this.props.caseItem.field_4);
             if (!isNaN(cd.getTime())) {
                 createdDate = cd;
             } else {
-                const pts = this.props.ta.field_4.split('.');
+                const pts = this.props.caseItem.field_4.split('.');
                 if (pts.length === 3) createdDate = new Date(`${pts[2]}-${pts[1]}-${pts[0]}`);
             }
         }
@@ -430,7 +430,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
 
         try {
             // Save termin + verantwortlicher
-            await this.props.onSetTermin(this.props.ta.ID, formatted, finalVerantwortlicherId, this.state.delayReason);
+            await this.props.onSetTermin(this.props.caseItem.ID, formatted, finalVerantwortlicherId, this.state.delayReason);
 
             // Also save costs + bemerkung in the same action
             const updates: Partial<Record<string, string | number | undefined>> = {
@@ -444,7 +444,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                 updates.field_2 = bemerkungPayload.savePayload;
             }
 
-            await this.props.onSave(this.props.ta.ID, updates);
+            await this.props.onSave(this.props.caseItem.ID, updates);
 
             if (bemerkungPayload.changed) {
                 this.setState({ bemerkungHistorie: bemerkungPayload.nextHistory, neueBemerkung: '' });
@@ -461,11 +461,11 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
         this.setState({ saving: true });
         try {
             await this.props.onVerschieben(
-                this.props.ta.ID,
+                this.props.caseItem.ID,
                 neuerTermin,
                 grund,
-                this.props.ta.field_6 || '',
-                this.props.ta.field_22 || undefined
+                this.props.caseItem.field_6 || '',
+                this.props.caseItem.field_22 || undefined
             );
         } finally {
             this.setState({ saving: false });
@@ -477,8 +477,8 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
         return val.toLocaleString('de-DE') + ' €';
     }
 
-    public render(): React.ReactElement<ITaDetailProps> {
-        const { ta } = this.props;
+    public render(): React.ReactElement<ICaseDetailProps> {
+        const { caseItem } = this.props;
         const bemerkungEntries = this.parseBemerkungEntries(this.state.bemerkungHistorie);
 
         return (
@@ -486,7 +486,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                 <div className={styles.header}>
                     <div className={styles.headerWithBack}>
                         <button className={styles.backButton} onClick={this.props.onBack}>← Zurück</button>
-                        <span className={styles.headerTitle}>{ta.Title}</span>
+                        <span className={styles.headerTitle}>{caseItem.Title}</span>
                     </div>
                 </div>
 
@@ -494,15 +494,15 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                     {/* Status & Overview */}
                     <div className={styles.formGroup}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                            <StatusPill status={ta.Status || ''} />
+                            <StatusPill status={caseItem.Status || ''} />
                             <span style={{ color: 'rgb(100, 116, 139)', fontSize: 12 }}>
-                                Ersteller: <strong>{ta.Ersteller?.Title || '–'}</strong>
+                                Ersteller: <strong>{caseItem.Ersteller?.Title || '–'}</strong>
                             </span>
                             <span style={{ color: 'rgb(100, 116, 139)', fontSize: 12 }}>
-                                Verantwortlich: <strong>{ta.Verantwortlicher?.Title || '–'}</strong>
+                                Verantwortlich: <strong>{caseItem.Verantwortlicher?.Title || '–'}</strong>
                             </span>
                             <span style={{ color: 'rgb(100, 116, 139)', fontSize: 12 }}>
-                                Erstellt: {formatDate(ta.field_4)}
+                                Erstellt: {formatDate(caseItem.field_4)}
                             </span>
                         </div>
                     </div>
@@ -513,19 +513,19 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                         <div className={styles.detailGrid}>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Wunschtermin</span>
-                                <span className={styles.detailValue}>{formatDate(ta.field_5)}</span>
+                                <span className={styles.detailValue}>{formatDate(caseItem.field_5)}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Geplanter Termin</span>
-                                <span className={styles.detailValue}>{formatDate(ta.field_6)}</span>
+                                <span className={styles.detailValue}>{formatDate(caseItem.field_6)}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Ursprünglicher Termin</span>
-                                <span className={styles.detailValue}>{formatDate(ta.field_22)}</span>
+                                <span className={styles.detailValue}>{formatDate(caseItem.field_22)}</span>
                             </div>
                         </div>
 
-                        {!ta.field_6 ? (
+                        {!caseItem.field_6 ? (
                             <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                 <h5 style={{ margin: '0 0 12px 0', color: '#334155' }}>Neuen Termin einplanen</h5>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -590,7 +590,7 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                                         style={{ width: '100%' }}
                                         value={this.state.verantwortlicherSearchText}
                                         onChange={(e) => this.handleVerantwortlicherChange(e.target.value)}
-                                        placeholder={ta.Verantwortlicher?.Title || 'Suchen (min. 3 Zeichen)'}
+                                        placeholder={caseItem.Verantwortlicher?.Title || 'Suchen (min. 3 Zeichen)'}
                                     />
                                     {this.state.showVerantwortlicherSuggestions && (
                                         <div className={styles.suggestionDropdown}>
@@ -628,43 +628,43 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                         <div className={styles.detailGrid}>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Kunde</span>
-                                <span className={styles.detailValue}>{ta.field_8 || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.field_8 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Endkunde</span>
-                                <span className={styles.detailValue}>{ta.field_9 || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.field_9 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Kontaktnummer</span>
-                                <span className={styles.detailValue}>{ta.field_10 || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.field_10 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>VP</span>
-                                <span className={styles.detailValue}>{ta.field_11 || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.field_11 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Material</span>
-                                <span className={styles.detailValue}>{ta.field_12 || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.field_12 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Kategorie</span>
-                                <span className={styles.detailValue}>{ta.field_16 || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.field_16 || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>SOP</span>
-                                <span className={styles.detailValue}>{ta.SOP || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.SOP || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>SegCode</span>
-                                <span className={styles.detailValue}>{ta.SegCode || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.SegCode || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Antwort in</span>
-                                <span className={styles.detailValue}>{ta.AntwortIn || '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.AntwortIn || '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Zielpreis</span>
-                                <span className={styles.detailValue}>{ta.Zielpreis != null ? ta.Zielpreis.toLocaleString('de-DE') + ' €' : '–'}</span>
+                                <span className={styles.detailValue}>{caseItem.Zielpreis != null ? caseItem.Zielpreis.toLocaleString('de-DE') + ' €' : '–'}</span>
                             </div>
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Priorität</span>
@@ -736,19 +736,19 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                             <div className={styles.detailItem}>
                                 <span className={styles.detailLabel}>Differenz</span>
                                 <span className={styles.detailValue} style={{
-                                    color: ta.field_20 !== undefined && ta.field_20 >= 0 ? '#10B981' : '#EF4444'
+                                    color: caseItem.field_20 !== undefined && caseItem.field_20 >= 0 ? '#10B981' : '#EF4444'
                                 }}>
-                                    {this.formatCurrency(ta.field_20)}
+                                    {this.formatCurrency(caseItem.field_20)}
                                 </span>
                             </div>
                         </div>
                     </div>
 
                     {/* Aufgabenstellung */}
-                    {ta.Aufgabenstellung && (
+                    {caseItem.Aufgabenstellung && (
                         <div className={styles.formGroup}>
                             <h4 className={styles.formGroupTitle}>Aufgabenstellung</h4>
-                            <p style={{ fontSize: 13, color: 'rgb(15, 23, 42)', margin: 0, whiteSpace: 'pre-wrap' }}>{ta.Aufgabenstellung}</p>
+                            <p style={{ fontSize: 13, color: 'rgb(15, 23, 42)', margin: 0, whiteSpace: 'pre-wrap' }}>{caseItem.Aufgabenstellung}</p>
                         </div>
                     )}
 
@@ -841,10 +841,10 @@ export default class TaDetail extends React.Component<ITaDetailProps, ITaDetailS
                     </div>
 
                     {/* Verschiebungsgrund */}
-                    {ta.field_21 && (
+                    {caseItem.field_21 && (
                         <div className={styles.formGroup}>
                             <h4 className={styles.formGroupTitle}>Letzter Verschiebungsgrund</h4>
-                            <p style={{ fontSize: 13, color: '#F59E0B', margin: 0 }}>{ta.field_21}</p>
+                            <p style={{ fontSize: 13, color: '#F59E0B', margin: 0 }}>{caseItem.field_21}</p>
                         </div>
                     )}
 

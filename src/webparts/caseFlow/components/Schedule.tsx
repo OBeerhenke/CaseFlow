@@ -1,6 +1,6 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
-import { ITaItem } from '../models/types';
+import styles from './App.module.scss';
+import { ICaseItem } from '../models/types';
 import StatusPill from './StatusPill';
 
 type SortKey = 'Title' | 'Ersteller' | 'Kunde' | 'Material' | 'Kategorie' | 'Endtermin' | 'Status';
@@ -35,21 +35,21 @@ const getKuerzel = (u?: { Title?: string; EMail?: string; Name?: string; Nicknam
     return getAccountKuerzel(u?.Name || u?.EMail, u?.Title);
 };
 
-export interface ITerminPlanenProps {
-    tas: ITaItem[];
-    onSelectTa: (id: number) => void;
+export interface IScheduleProps {
+    cases: ICaseItem[];
+    onSelectCase: (id: number) => void;
     onBack: () => void;
 }
 
-interface ITerminPlanenState {
+interface IScheduleState {
     search: string;
     kategorieFilter: string;
     sortKey: SortKey;
     sortDir: SortDir;
 }
 
-export default class TerminPlanen extends React.Component<ITerminPlanenProps, ITerminPlanenState> {
-    constructor(props: ITerminPlanenProps) {
+export default class Schedule extends React.Component<IScheduleProps, IScheduleState> {
+    constructor(props: IScheduleProps) {
         super(props);
         this.state = {
             search: '',
@@ -61,44 +61,44 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps, IT
 
     private getKategorien(): string[] {
         const set = new Set<string>();
-        this.getPlanTas().forEach(ta => { if (ta.field_16) set.add(ta.field_16); });
+        this.getPlanCases().forEach(caseItem => { if (caseItem.field_16) set.add(caseItem.field_16); });
         return Array.from(set).sort();
     }
 
-    private getPlanTas(): ITaItem[] {
-        return this.props.tas
+    private getPlanCases(): ICaseItem[] {
+        return this.props.cases
             .filter(t => t.Status === 'Termin planen');
     }
 
-    private getSortValue(ta: ITaItem, key: SortKey): string {
+    private getSortValue(caseItem: ICaseItem, key: SortKey): string {
         switch (key) {
-            case 'Title': return ta.Title || '';
-            case 'Ersteller': return ta.Ersteller?.Title || '';
-            case 'Kunde': return ta.field_8 || '';
-            case 'Material': return ta.field_12 || '';
-            case 'Kategorie': return ta.field_16 || '';
-            case 'Endtermin': return ta.field_4 || '9999-12-31';
-            case 'Status': return ta.Status || '';
+            case 'Title': return caseItem.Title || '';
+            case 'Ersteller': return caseItem.Ersteller?.Title || '';
+            case 'Kunde': return caseItem.field_8 || '';
+            case 'Material': return caseItem.field_12 || '';
+            case 'Kategorie': return caseItem.field_16 || '';
+            case 'Endtermin': return caseItem.field_4 || '9999-12-31';
+            case 'Status': return caseItem.Status || '';
             default: return '';
         }
     }
 
-    private getFilteredTas(): ITaItem[] {
+    private getFilteredCases(): ICaseItem[] {
         const { search, kategorieFilter, sortKey, sortDir } = this.state;
 
-        const filtered = this.getPlanTas().filter(ta => {
+        const filtered = this.getPlanCases().filter(caseItem => {
             if (search) {
                 const s = search.toLowerCase();
-                const ersteller = (ta.Ersteller?.Title || '').toLowerCase();
-                const erstellerNick = (ta.Ersteller?.Nickname || '').toLowerCase();
-                const verantwortlicher = (ta.Verantwortlicher?.Title || '').toLowerCase();
-                const verantwortlicherNick = (ta.Verantwortlicher?.Nickname || '').toLowerCase();
+                const ersteller = (caseItem.Ersteller?.Title || '').toLowerCase();
+                const erstellerNick = (caseItem.Ersteller?.Nickname || '').toLowerCase();
+                const verantwortlicher = (caseItem.Verantwortlicher?.Title || '').toLowerCase();
+                const verantwortlicherNick = (caseItem.Verantwortlicher?.Nickname || '').toLowerCase();
                 const matchesSearch =
-                    (ta.Title || '').toLowerCase().includes(s) ||
-                    (ta.field_8 || '').toLowerCase().includes(s) ||
-                    (ta.field_12 || '').toLowerCase().includes(s) ||
-                    (ta.field_16 || '').toLowerCase().includes(s) ||
-                    (ta.field_9 || '').toLowerCase().includes(s) ||
+                    (caseItem.Title || '').toLowerCase().includes(s) ||
+                    (caseItem.field_8 || '').toLowerCase().includes(s) ||
+                    (caseItem.field_12 || '').toLowerCase().includes(s) ||
+                    (caseItem.field_16 || '').toLowerCase().includes(s) ||
+                    (caseItem.field_9 || '').toLowerCase().includes(s) ||
                     ersteller.includes(s) ||
                     erstellerNick.includes(s) ||
                     verantwortlicher.includes(s) ||
@@ -106,7 +106,7 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps, IT
                 if (!matchesSearch) return false;
             }
 
-            if (kategorieFilter !== 'Alle' && ta.field_16 !== kategorieFilter) return false;
+            if (kategorieFilter !== 'Alle' && caseItem.field_16 !== kategorieFilter) return false;
 
             return true;
         });
@@ -143,8 +143,8 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps, IT
         return '–';
     }
 
-    public render(): React.ReactElement<ITerminPlanenProps> {
-        const filtered = this.getFilteredTas();
+    public render(): React.ReactElement<IScheduleProps> {
+        const filtered = this.getFilteredCases();
         const kategorien = this.getKategorien();
 
         return (
@@ -184,7 +184,7 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps, IT
                         </div>
                     ) : (
                         <div style={{ overflowX: 'auto' }}>
-                            <table className={styles.taTable}>
+                            <table className={styles.caseTable}>
                                 <thead>
                                     <tr>
                                         <th onClick={() => this.toggleSort('Title')}>TA-Nr.{this.renderSortIcon('Title')}</th>
@@ -197,15 +197,15 @@ export default class TerminPlanen extends React.Component<ITerminPlanenProps, IT
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filtered.map(ta => (
-                                        <tr key={ta.ID} onClick={() => this.props.onSelectTa(ta.ID)}>
-                                            <td><b>{ta.Title}</b></td>
-                                            <td title={ta.Ersteller?.Title}>{getKuerzel(ta.Ersteller)}</td>
-                                            <td>{ta.field_8 || '–'}</td>
-                                            <td>{ta.field_12 || '–'}</td>
-                                            <td>{ta.field_16 || '–'}</td>
-                                            <td>{this.formatDate(ta.field_4)}</td>
-                                            <td><StatusPill status={ta.Status || ''} /></td>
+                                    {filtered.map(caseItem => (
+                                        <tr key={caseItem.ID} onClick={() => this.props.onSelectCase(caseItem.ID)}>
+                                            <td><b>{caseItem.Title}</b></td>
+                                            <td title={caseItem.Ersteller?.Title}>{getKuerzel(caseItem.Ersteller)}</td>
+                                            <td>{caseItem.field_8 || '–'}</td>
+                                            <td>{caseItem.field_12 || '–'}</td>
+                                            <td>{caseItem.field_16 || '–'}</td>
+                                            <td>{this.formatDate(caseItem.field_4)}</td>
+                                            <td><StatusPill status={caseItem.Status || ''} /></td>
                                         </tr>
                                     ))}
                                 </tbody>

@@ -1,17 +1,17 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
-import { INewTaForm, IProjektItem } from '../models/types';
+import styles from './App.module.scss';
+import { INewCaseForm, IProjektItem } from '../models/types';
 
-export interface INeueTaProps {
+export interface INewCaseProps {
     projekte: IProjektItem[];
     users: any[];
-    onSubmit: (form: INewTaForm, files: File[]) => Promise<void>;
+    onSubmit: (form: INewCaseForm, files: File[]) => Promise<void>;
     onBack: () => void;
     onSearchUsers?: (query: string) => Promise<any[]>;
     onEnsureUser?: (login: string) => Promise<number>;
 }
 
-interface INeueTaState extends INewTaForm {
+interface INewCaseState extends INewCaseForm {
     saving: boolean;
     kundenList: string[];
     filteredKunden: string[];
@@ -27,10 +27,10 @@ interface INeueTaState extends INewTaForm {
     files: File[];
 }
 
-export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> {
+export default class NewCase extends React.Component<INewCaseProps, INewCaseState> {
     private fileInputRef = React.createRef<HTMLInputElement>();
 
-    constructor(props: INeueTaProps) {
+    constructor(props: INewCaseProps) {
         super(props);
 
         const kundenSet = new Set<string>();
@@ -314,7 +314,7 @@ export default class NeueTa extends React.Component<INeueTaProps, INeueTaState> 
         }
     }
 
-    public render(): React.ReactElement<INeueTaProps> {
+    public render(): React.ReactElement<INewCaseProps> {
         const { saving, kunde, wunschtermin, kategorie } = this.state;
 
         const isFormValid = !!kunde && !!wunschtermin && !!kategorie;

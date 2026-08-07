@@ -1,5 +1,5 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
+import styles from './App.module.scss';
 import { AppView } from '../models/types';
 import { Icon } from '@fluentui/react/lib/Icon';
 
@@ -11,10 +11,10 @@ export interface INavBarProps {
 const NavBar: React.FC<INavBarProps> = ({ activeView, onNavigate }) => {
     const items = [
         { view: AppView.Dashboard, iconName: 'HomeSolid', label: 'Home' },
-        { view: AppView.NeueTa, iconName: 'Add', label: 'Neue TA' },
-        { view: AppView.AlleTas, iconName: 'BulletedList', label: 'Alle TAs' },
-        { view: AppView.Statistik, iconName: 'BarChartVertical', label: 'Statistik' },
-        { view: AppView.TerminPlanen, iconName: 'Calendar', label: 'Planen' },
+        { view: AppView.NewCase, iconName: 'Add', label: 'Neue TA' },
+        { view: AppView.CaseList, iconName: 'BulletedList', label: 'Alle TAs' },
+        { view: AppView.Analytics, iconName: 'BarChartVertical', label: 'Analytics' },
+        { view: AppView.Schedule, iconName: 'Calendar', label: 'Planen' },
         { view: AppView.Settings, iconName: 'Settings', label: 'Einstellungen' },
     ];
 

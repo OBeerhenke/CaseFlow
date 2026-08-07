@@ -1,6 +1,6 @@
 import * as React from 'react';
-import styles from './TaManagement.module.scss';
-import { ITaItem, STATUS_VALUES } from '../models/types';
+import styles from './App.module.scss';
+import { ICaseItem, STATUS_VALUES } from '../models/types';
 import StatusPill from './StatusPill'; 
 
 type SortKey = 'Title' | 'Ersteller' | 'Kunde' | 'Material' | 'Kategorie' | 'Verantwortlicher' | 'Termin' | 'Status';
@@ -35,14 +35,14 @@ const getKuerzel = (u?: { Title?: string; EMail?: string; Name?: string; Nicknam
     return getAccountKuerzel(u?.Name || u?.EMail, u?.Title);
 };
 
-export interface IAlleTasProps {
-    tas: ITaItem[];
+export interface ICaseListProps {
+    cases: ICaseItem[];
     initialFilter: string;
-    onSelectTa: (id: number) => void;
+    onSelectCase: (id: number) => void;
     onBack: () => void;
 }
 
-interface IAlleTasState {
+interface ICaseListState {
     search: string;
     statusFilter: string;
     kategorieFilter: string;
@@ -50,8 +50,8 @@ interface IAlleTasState {
     sortDir: SortDir;
 }
 
-export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasState> {
-    constructor(props: IAlleTasProps) {
+export default class CaseList extends React.Component<ICaseListProps, ICaseListState> {
+    constructor(props: ICaseListProps) {
         super(props);
         this.state = {
             search: '',
@@ -62,7 +62,7 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
         };
     }
 
-    public componentDidUpdate(prevProps: IAlleTasProps): void {
+    public componentDidUpdate(prevProps: ICaseListProps): void {
         if (prevProps.initialFilter !== this.props.initialFilter && this.props.initialFilter) {
             this.setState({ statusFilter: this.props.initialFilter });
         }
@@ -70,41 +70,41 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
 
     private getKategorien(): string[] {
         const set = new Set<string>();
-        this.props.tas.forEach(ta => { if (ta.field_16) set.add(ta.field_16); });
+        this.props.cases.forEach(caseItem => { if (caseItem.field_16) set.add(caseItem.field_16); });
         return Array.from(set).sort();
     }
 
-    private getSortValue(ta: ITaItem, key: SortKey): string {
+    private getSortValue(caseItem: ICaseItem, key: SortKey): string {
         switch (key) {
-            case 'Title': return ta.Title || '';
-            case 'Ersteller': return ta.Ersteller?.Title || '';
-            case 'Kunde': return ta.field_8 || '';
-            case 'Material': return ta.field_12 || '';
-            case 'Kategorie': return ta.field_16 || '';
-            case 'Verantwortlicher': return ta.Verantwortlicher?.Title || '';
-            case 'Termin': return ta.field_6 || '9999-12-31';
-            case 'Status': return ta.Status || '';
+            case 'Title': return caseItem.Title || '';
+            case 'Ersteller': return caseItem.Ersteller?.Title || '';
+            case 'Kunde': return caseItem.field_8 || '';
+            case 'Material': return caseItem.field_12 || '';
+            case 'Kategorie': return caseItem.field_16 || '';
+            case 'Verantwortlicher': return caseItem.Verantwortlicher?.Title || '';
+            case 'Termin': return caseItem.field_6 || '9999-12-31';
+            case 'Status': return caseItem.Status || '';
             default: return '';
         }
     }
 
-    private getFilteredTas(): ITaItem[] {
+    private getFilteredCases(): ICaseItem[] {
         const { search, statusFilter, kategorieFilter, sortKey, sortDir } = this.state;
 
-        const filtered = this.props.tas.filter(ta => {
+        const filtered = this.props.cases.filter(caseItem => {
             // Text search
             if (search) {
                 const s = search.toLowerCase();
-                const ersteller = (ta.Ersteller?.Title || '').toLowerCase();
-                const erstellerNick = (ta.Ersteller?.Nickname || '').toLowerCase();
-                const verantwortlicher = (ta.Verantwortlicher?.Title || '').toLowerCase();
-                const verantwortlicherNick = (ta.Verantwortlicher?.Nickname || '').toLowerCase();
+                const ersteller = (caseItem.Ersteller?.Title || '').toLowerCase();
+                const erstellerNick = (caseItem.Ersteller?.Nickname || '').toLowerCase();
+                const verantwortlicher = (caseItem.Verantwortlicher?.Title || '').toLowerCase();
+                const verantwortlicherNick = (caseItem.Verantwortlicher?.Nickname || '').toLowerCase();
                 const matchesSearch =
-                    (ta.Title || '').toLowerCase().includes(s) ||
-                    (ta.field_8 || '').toLowerCase().includes(s) ||
-                    (ta.field_12 || '').toLowerCase().includes(s) ||
-                    (ta.field_16 || '').toLowerCase().includes(s) ||
-                    (ta.field_9 || '').toLowerCase().includes(s) ||
+                    (caseItem.Title || '').toLowerCase().includes(s) ||
+                    (caseItem.field_8 || '').toLowerCase().includes(s) ||
+                    (caseItem.field_12 || '').toLowerCase().includes(s) ||
+                    (caseItem.field_16 || '').toLowerCase().includes(s) ||
+                    (caseItem.field_9 || '').toLowerCase().includes(s) ||
                     ersteller.includes(s) ||
                     erstellerNick.includes(s) ||
                     verantwortlicher.includes(s) ||
@@ -112,10 +112,10 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                 if (!matchesSearch) return false;
             }
             // Status filter
-            if (statusFilter === 'Offen' && ta.Status === 'abgeschlossen') return false;
-            if (statusFilter !== 'Alle' && statusFilter !== 'Offen' && ta.Status !== statusFilter) return false;
+            if (statusFilter === 'Offen' && caseItem.Status === 'abgeschlossen') return false;
+            if (statusFilter !== 'Alle' && statusFilter !== 'Offen' && caseItem.Status !== statusFilter) return false;
             // Kategorie filter
-            if (kategorieFilter !== 'Alle' && ta.field_16 !== kategorieFilter) return false;
+            if (kategorieFilter !== 'Alle' && caseItem.field_16 !== kategorieFilter) return false;
             return true;
         });
 
@@ -142,8 +142,8 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
         return this.state.sortDir === 'asc' ? ' ↑' : ' ↓';
     }
 
-    public render(): React.ReactElement<IAlleTasProps> {
-        const filtered = this.getFilteredTas();
+    public render(): React.ReactElement<ICaseListProps> {
+        const filtered = this.getFilteredCases();
         const kategorien = this.getKategorien();
 
         return (
@@ -196,7 +196,7 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                         </div>
                     ) : (
                         <div style={{ overflowX: 'auto' }}>
-                            <table className={styles.taTable}>
+                            <table className={styles.caseTable}>
                                 <thead>
                                     <tr>
                                         <th onClick={() => this.toggleSort('Title')}>TA-Nr.{this.renderSortIcon('Title')}</th>
@@ -210,16 +210,16 @@ export default class AlleTas extends React.Component<IAlleTasProps, IAlleTasStat
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filtered.map(ta => (
-                                        <tr key={ta.ID} onClick={() => this.props.onSelectTa(ta.ID)}>
-                                            <td><b>{ta.Title}</b></td>
-                                            <td title={ta.Ersteller?.Title}>{getKuerzel(ta.Ersteller)}</td>
-                                            <td>{ta.field_8 || '–'}</td>
-                                            <td>{ta.field_12 || '–'}</td>
-                                            <td>{ta.field_16 || '–'}</td>
-                                            <td title={ta.Verantwortlicher?.Title}>{getKuerzel(ta.Verantwortlicher)}</td>
-                                            <td>{ta.field_6 ? new Date(ta.field_6).toLocaleDateString('de-DE') : '–'}</td>
-                                            <td><StatusPill status={ta.Status || ''} /></td>
+                                    {filtered.map(caseItem => (
+                                        <tr key={caseItem.ID} onClick={() => this.props.onSelectCase(caseItem.ID)}>
+                                            <td><b>{caseItem.Title}</b></td>
+                                            <td title={caseItem.Ersteller?.Title}>{getKuerzel(caseItem.Ersteller)}</td>
+                                            <td>{caseItem.field_8 || '–'}</td>
+                                            <td>{caseItem.field_12 || '–'}</td>
+                                            <td>{caseItem.field_16 || '–'}</td>
+                                            <td title={caseItem.Verantwortlicher?.Title}>{getKuerzel(caseItem.Verantwortlicher)}</td>
+                                            <td>{caseItem.field_6 ? new Date(caseItem.field_6).toLocaleDateString('de-DE') : '–'}</td>
+                                            <td><StatusPill status={caseItem.Status || ''} /></td>
                                         </tr>
                                     ))}
                                 </tbody>

@@ -1,8 +1,8 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
   "solution": {
-    "name": "ta-management-client-side-solution",
-    "id": "1b7cecd5-79a0-468d-b6c3-c2aa4ff2e562",
+    "name": "case-flow-client-side-solution",
+    "id": "86ebe504-625c-4a80-bfa0-48c480b8adb1",
     "version": "1.0.0.0",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
@@ -16,10 +16,10 @@
     },
     "metadata": {
       "shortDescription": {
-        "default": "ta-management description"
+        "default": "CaseFlow — konfigurierbares Vorgangs-Management für SharePoint"
       },
       "longDescription": {
-        "default": "ta-management description"
+        "default": "CaseFlow — konfigurierbares Vorgangs-Management für SharePoint"
       },
       "screenshotPaths": [],
       "videoUrl": "",
@@ -27,14 +27,14 @@
     },
     "features": [
       {
-        "title": "ta-management Feature",
-        "description": "The feature that activates elements of the ta-management solution.",
+        "title": "CaseFlow Feature",
+        "description": "The feature that activates elements of the CaseFlow solution.",
         "id": "fb557e87-560c-4f91-92ab-307eb47e34f0",
         "version": "1.0.0.0"
       }
     ]
   },
   "paths": {
-    "zippedPackage": "solution/ta-management.sppkg"
+    "zippedPackage": "solution/case-flow.sppkg"
   }
 }

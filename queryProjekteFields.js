@@ -5,7 +5,7 @@ async function main() {
     sp.setup({
         sp: {
             fetchClientFactory: () => new SPFetchClient(
-                'https://barlogpl.sharepoint.com/sites/ta-management',
+                process.env.SP_SITE_URL || 'https://{your-tenant}.sharepoint.com/sites/{your-site}',
                 process.env.SP_ID,
                 process.env.SP_SECRET
             ),
