@@ -11,6 +11,7 @@ import { ICaseItem, IProjektItem, INewCaseForm, IKpiData, IKategorieItem, IKunde
 import { CONFIG_KEYS, DEFAULT_LIST_NAMES, IListNamesConfig } from '../models/config';
 import { FieldMappingService } from './FieldMappingService';
 import { ConfigService } from './ConfigService';
+import { evaluateCaseStatus, IStatusEngineConfig } from './statusEngine';
 
 function pad2(n: number): string {
     return n < 10 ? '0' + n : '' + n;
@@ -334,49 +335,31 @@ export class SharePointService {
 
     /** Auto-detect case statuses based on planned date and update them if needed */
     public async evaluateStatuses(cases: ICaseItem[]): Promise<number> {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const updates: { id: number; status: string }[] = [];
-
         const pruefenTageRaw = await ConfigService.instance.getValue(CONFIG_KEYS.REVIEW_DAYS, '3');
-        const pruefenTage = parseInt(pruefenTageRaw, 10) || 3;
+
+        const engineConfig: IStatusEngineConfig = {
+            reviewDays: parseInt(pruefenTageRaw, 10) || 3,
+            statusNoPlan: 'Termin planen',
+            statusOverdue: 'überfällig',
+            statusReview: 'prüfen',
+            statusOnTrack: 'läuft planmäßig',
+            statusCompleted: 'abgeschlossen'
+        };
+
+        const updates: { id: number; status: string }[] = [];
+        const today = new Date();
 
         for (const caseItem of cases) {
-            if (caseItem.Status === 'abgeschlossen') continue;
+            const { status, changed } = evaluateCaseStatus(
+                caseItem.field_6,
+                caseItem.Status,
+                engineConfig,
+                today
+            );
 
-            let expectedStatus = caseItem.Status;
-
-            if (!caseItem.field_6) {
-                expectedStatus = 'Termin planen';
-            } else {
-                let planDate: Date;
-                if (caseItem.field_6.includes('-')) {
-                    planDate = new Date(caseItem.field_6);
-                } else {
-                    const parts = caseItem.field_6.split('.');
-                    if (parts.length === 3) {
-                        planDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                    } else {
-                        planDate = new Date();
-                    }
-                }
-                planDate.setHours(0, 0, 0, 0);
-
-                // Prüfen-Schwelle aus CaseFlow_Config (PruefenTage) — Werktage
-                const pruefenDeadline = this.addWorkdays(today, pruefenTage);
-
-                if (planDate <= today) {
-                    expectedStatus = 'überfällig';
-                } else if (planDate <= pruefenDeadline) {
-                    expectedStatus = 'prüfen';
-                } else {
-                    expectedStatus = 'läuft planmäßig';
-                }
-            }
-
-            if (caseItem.Status !== expectedStatus) {
-                caseItem.Status = expectedStatus;
-                updates.push({ id: caseItem.ID, status: expectedStatus });
+            if (changed) {
+                caseItem.Status = status;
+                updates.push({ id: caseItem.ID, status });
             }
         }
 
@@ -391,23 +374,6 @@ export class SharePointService {
         }
 
         return updates.length;
-    }
-
-    /**
-     * Add N workdays (Mon–Fri) to a given date.
-     * Replicates Excel's WORKDAY() function.
-     */
-    private addWorkdays(start: Date, days: number): Date {
-        const result = new Date(start);
-        let added = 0;
-        while (added < days) {
-            result.setDate(result.getDate() + 1);
-            const dow = result.getDay();
-            if (dow !== 0 && dow !== 6) { // Skip Sat (6) and Sun (0)
-                added++;
-            }
-        }
-        return result;
     }
 
     public async getNextCaseNumber(): Promise<string> {
