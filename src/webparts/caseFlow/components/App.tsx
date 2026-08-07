@@ -3,6 +3,8 @@ import styles from './App.module.scss';
 import { ICaseFlowProps } from './ICaseFlowProps';
 import { ICaseItem, IProjektItem, IKpiData, INewCaseForm, AppView } from '../models/types';
 import { SharePointService } from '../services/SharePointService';
+import { ConfigService } from '../services/ConfigService';
+import { LabelService } from '../services/LabelService';
 import NavBar from './NavBar';
 import Dashboard from './Dashboard';
 import NewCase from './NewCase';
@@ -25,6 +27,7 @@ interface IAppState {
   loading: boolean;
   toast: string;
   currentUserNickname: string;
+  config: Record<string, string>;
 }
 
 export default class App extends React.Component<ICaseFlowProps, IAppState> {
@@ -45,7 +48,8 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
       kpi: { overdue: 0, plan: 0, onTrack: 0, review: 0 },
       loading: true,
       toast: '',
-      currentUserNickname: ''
+      currentUserNickname: '',
+      config: {}
     };
   }
 
@@ -62,20 +66,21 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
   private async loadData(): Promise<void> {
     this.setState({ loading: true });
     try {
-      const [cases, projekte, users] = await Promise.all([
-        this.svc.getAllTAs(),
+      const [cases, projekte, users, config] = await Promise.all([
+        this.svc.getAllCases(),
         this.svc.getProjekte(),
-        this.svc.getSiteUsers()
+        this.svc.getSiteUsers(),
+        ConfigService.instance.getAll()
       ]);
 
       // Auto-detect overdue
       await this.svc.evaluateStatuses(cases);
 
-      // Enrich TAs with SharePoint user nicknames (short codes)
+      // Enrich cases with SharePoint user nicknames (short codes)
       await this.svc.enrichWithNicknames(cases);
 
       const kpi = await this.svc.getKpiData(cases);
-      this.setState({ cases, projekte, users, kpi, loading: false });
+      this.setState({ cases, projekte, users, kpi, config, loading: false });
     } catch (err) {
       console.error('Error loading data:', err);
       this.setState({ loading: false });
@@ -126,10 +131,10 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
     });
   }
 
-  private handleCreateTA = async (form: INewCaseForm, files: File[]): Promise<void> => {
+  private handleCreateCase = async (form: INewCaseForm, files: File[]): Promise<void> => {
     try {
       const caseNr = await this.svc.getNextCaseNumber();
-      const newId = await this.svc.createTA(form, caseNr);
+      const newId = await this.svc.createCase(form, caseNr);
       // Upload attachments if any
       for (const file of files) {
         const buffer = await file.arrayBuffer();
@@ -139,8 +144,8 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
       await this.loadData();
       this.setState({ currentView: AppView.Dashboard });
     } catch (err) {
-      console.error('Error creating TA:', err);
-      this.showToast('Fehler beim Anlegen der TA');
+      console.error('Error creating case:', err);
+      this.showToast('Fehler beim Anlegen');
     }
   }
 
@@ -160,12 +165,12 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
 
   private handleSaveCase = async (id: number, fields: Partial<Record<string, string | number | undefined>>): Promise<void> => {
     try {
-      await this.svc.updateTA(id, fields);
+      await this.svc.updateCase(id, fields);
       this.showToast('Gespeichert');
       await this.loadData();
       this.setState({ currentView: AppView.Dashboard });
     } catch (err) {
-      console.error('Error saving TA:', err);
+      console.error('Error saving case:', err);
       this.showToast('Fehler beim Speichern');
     }
   }
@@ -191,6 +196,7 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
           <Dashboard
             cases={cases}
             kpi={kpi}
+            config={this.state.config}
             userName={this.props.userDisplayName}
             onNavigate={this.navigate}
             onSelectCase={this.selectCase}
@@ -202,7 +208,7 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
           <NewCase
             projekte={projekte}
             users={this.state.users}
-            onSubmit={this.handleCreateTA}
+            onSubmit={this.handleCreateCase}
             onBack={this.goBack}
             onSearchUsers={async (q) => await this.svc.searchUsers(q)}
             onEnsureUser={async (login) => await this.svc.ensureUser(login)}
@@ -224,7 +230,7 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
           return (
             <div className={styles.content}>
               <div className={styles.emptyState}>
-                <span>TA nicht gefunden</span>
+                <span>{LabelService.getEntityLabelSingular(this.state.config)} nicht gefunden</span>
                 <button className={styles.btnPrimary} onClick={this.goBack}>Zurück</button>
               </div>
             </div>
@@ -292,15 +298,15 @@ export default class App extends React.Component<ICaseFlowProps, IAppState> {
           </div>
         ) : (
           <>
-            <NavBar activeView={currentView} onNavigate={this.navigate} />
+            <NavBar activeView={currentView} onNavigate={this.navigate} config={this.state.config} />
             {this.renderView()}
 
-            {/* Mobile FAB: Neue TA anlegen */}
+            {/* Mobile FAB: create a new case */}
             {currentView !== AppView.NewCase && (
               <button
                 className={styles.fab}
                 onClick={() => this.navigate(AppView.NewCase)}
-                title="Neue TA anlegen"
+                title={LabelService.getCreateActionLabel(this.state.config)}
               >
                 +
               </button>

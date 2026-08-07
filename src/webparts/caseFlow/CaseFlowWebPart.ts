@@ -11,9 +11,31 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import App from './components/App';
 import { ICaseFlowProps } from './components/ICaseFlowProps';
 import { SharePointService } from './services/SharePointService';
+import { ConfigService } from './services/ConfigService';
+import { SharePointConfigStore } from './services/SharePointConfigStore';
+import { FieldMappingService } from './services/FieldMappingService';
+import { StatusConfigService } from './services/StatusConfigService';
+import { DEFAULT_LIST_NAMES, IFieldMapping, IListNamesConfig, IStatusDefinition } from './models/config';
 
 export interface ICaseFlowWebPartProps {
   description: string;
+  casesListName: string;
+  categoriesListName: string;
+  customerApplicationsListName: string;
+  configListName: string;
+  fieldMappingJson: string;
+  statusDefinitionsJson: string;
+}
+
+/** Parse a JSON Property Pane field, falling back to `fallback` and logging a warning on invalid input. */
+function parseJsonProperty<T>(raw: string | undefined, label: string, fallback: T): T {
+  if (!raw || !raw.trim()) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch (e) {
+    console.warn(`CaseFlow: could not parse "${label}" Property Pane JSON — using defaults.`, e);
+    return fallback;
+  }
 }
 
 export default class CaseFlowWebPart extends BaseClientSideWebPart<ICaseFlowWebPartProps> {
@@ -22,8 +44,29 @@ export default class CaseFlowWebPart extends BaseClientSideWebPart<ICaseFlowWebP
   private _environmentMessage: string = '';
 
   protected async onInit(): Promise<void> {
-    // Initialize SharePoint service
-    SharePointService.init(this.context);
+    const listNames: IListNamesConfig = {
+      cases: this.properties.casesListName || DEFAULT_LIST_NAMES.cases,
+      projects: DEFAULT_LIST_NAMES.projects,
+      categories: this.properties.categoriesListName || DEFAULT_LIST_NAMES.categories,
+      customerApplications: this.properties.customerApplicationsListName || DEFAULT_LIST_NAMES.customerApplications,
+      config: this.properties.configListName || DEFAULT_LIST_NAMES.config
+    };
+
+    const fieldMappingOverrides = parseJsonProperty<IFieldMapping>(this.properties.fieldMappingJson, 'fieldMappingJson', {});
+    const statusDefinitions = parseJsonProperty<IStatusDefinition[]>(this.properties.statusDefinitionsJson, 'statusDefinitionsJson', undefined as unknown as IStatusDefinition[]);
+
+    FieldMappingService.init(fieldMappingOverrides);
+    StatusConfigService.init(statusDefinitions);
+
+    SharePointService.init(this.context, listNames);
+    ConfigService.init(new SharePointConfigStore(listNames.config));
+
+    try {
+      await ConfigService.instance.ensureSchemaVersion();
+    } catch (e) {
+      console.warn('CaseFlow: could not verify/migrate config schema version.', e);
+    }
+
     this._environmentMessage = await this._getEnvironmentMessage();
   }
 
@@ -87,6 +130,49 @@ export default class CaseFlowWebPart extends BaseClientSideWebPart<ICaseFlowWebP
               groupFields: [
                 PropertyPaneTextField('description', {
                   label: 'Beschreibung'
+                })
+              ]
+            },
+            {
+              groupName: 'SharePoint-Listen',
+              groupFields: [
+                PropertyPaneTextField('casesListName', {
+                  label: 'Cases-Liste',
+                  description: `Standard: ${DEFAULT_LIST_NAMES.cases}`
+                }),
+                PropertyPaneTextField('categoriesListName', {
+                  label: 'Kategorien-Liste',
+                  description: `Standard: ${DEFAULT_LIST_NAMES.categories}`
+                }),
+                PropertyPaneTextField('customerApplicationsListName', {
+                  label: 'Kunden-Anwendungen-Liste',
+                  description: `Standard: ${DEFAULT_LIST_NAMES.customerApplications}`
+                }),
+                PropertyPaneTextField('configListName', {
+                  label: 'Config-Liste',
+                  description: `Standard: ${DEFAULT_LIST_NAMES.config}`
+                })
+              ]
+            },
+            {
+              groupName: 'Feld-Mapping (fortgeschritten)',
+              groupFields: [
+                PropertyPaneTextField('fieldMappingJson', {
+                  label: 'Feld-Mapping (JSON)',
+                  description: 'Überschreibt einzelne Feldnamen, z.B. {"field_8": "Customer", "field_6": "PlannedDate"}. Leer lassen für Standard-Mapping.',
+                  multiline: true,
+                  rows: 6
+                })
+              ]
+            },
+            {
+              groupName: 'Status-Definitionen (fortgeschritten)',
+              groupFields: [
+                PropertyPaneTextField('statusDefinitionsJson', {
+                  label: 'Status-Definitionen (JSON)',
+                  description: 'Array von {"key","label","color"}. Leer lassen für Standard-Stati (Termin planen / läuft planmäßig / prüfen / überfällig / abgeschlossen).',
+                  multiline: true,
+                  rows: 8
                 })
               ]
             }

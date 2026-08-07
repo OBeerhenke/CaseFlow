@@ -1,6 +1,8 @@
 import * as React from 'react';
 import styles from './App.module.scss';
 import { SharePointService } from '../services/SharePointService';
+import { ConfigService } from '../services/ConfigService';
+import { CONFIG_KEYS } from '../models/config';
 import { IKategorieItem, IKundenAnwendungItem } from '../models/types';
 import { Spinner, SpinnerSize } from '@fluentui/react/lib/Spinner';
 import { Icon } from '@fluentui/react/lib/Icon';
@@ -27,6 +29,9 @@ interface ISettingsState {
     // Global App Settings
     delayThreshold: string;
     pruefenTage: string;
+    entityLabelSingular: string;
+    entityLabelPlural: string;
+    projectsCsvPath: string;
     savingConfig: boolean;
 }
 
@@ -44,6 +49,9 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
             activeSettingView: 'menu',
             delayThreshold: '2',
             pruefenTage: '3',
+            entityLabelSingular: 'Anfrage',
+            entityLabelPlural: 'Anfragen',
+            projectsCsvPath: '',
             savingConfig: false
         };
     }
@@ -106,9 +114,19 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
     private async loadConfig(): Promise<void> {
         this.setState({ loading: true, error: null });
         try {
-            const delayRaw = await SharePointService.instance.getConfigValue('DelayThresholdDays', '2');
-            const pruefenRaw = await SharePointService.instance.getConfigValue('PruefenTage', '3');
-            this.setState({ delayThreshold: delayRaw, pruefenTage: pruefenRaw, loading: false });
+            const delayRaw = await ConfigService.instance.getValue(CONFIG_KEYS.DELAY_THRESHOLD_DAYS, '2');
+            const pruefenRaw = await ConfigService.instance.getValue(CONFIG_KEYS.REVIEW_DAYS, '3');
+            const entitySingularRaw = await ConfigService.instance.getValue(CONFIG_KEYS.ENTITY_LABEL_SINGULAR);
+            const entityPluralRaw = await ConfigService.instance.getValue(CONFIG_KEYS.ENTITY_LABEL_PLURAL);
+            const csvPathRaw = await ConfigService.instance.getValue(CONFIG_KEYS.PROJECTS_CSV_PATH, '');
+            this.setState({
+                delayThreshold: delayRaw,
+                pruefenTage: pruefenRaw,
+                entityLabelSingular: entitySingularRaw,
+                entityLabelPlural: entityPluralRaw,
+                projectsCsvPath: csvPathRaw,
+                loading: false
+            });
         } catch (e: any) {
             this.setState({ error: 'Fehler beim Laden der Einstellungen: ' + e.message, loading: false });
         }
@@ -117,8 +135,11 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
     private handleSaveConfig = async (): Promise<void> => {
         this.setState({ savingConfig: true, error: null });
         try {
-            await SharePointService.instance.setConfigValue('DelayThresholdDays', this.state.delayThreshold);
-            await SharePointService.instance.setConfigValue('PruefenTage', this.state.pruefenTage);
+            await ConfigService.instance.setValue(CONFIG_KEYS.DELAY_THRESHOLD_DAYS, this.state.delayThreshold);
+            await ConfigService.instance.setValue(CONFIG_KEYS.REVIEW_DAYS, this.state.pruefenTage);
+            await ConfigService.instance.setValue(CONFIG_KEYS.ENTITY_LABEL_SINGULAR, this.state.entityLabelSingular);
+            await ConfigService.instance.setValue(CONFIG_KEYS.ENTITY_LABEL_PLURAL, this.state.entityLabelPlural);
+            await ConfigService.instance.setValue(CONFIG_KEYS.PROJECTS_CSV_PATH, this.state.projectsCsvPath);
             this.setState({ savingConfig: false });
             alert('Einstellungen gespeichert!');
         } catch (e: any) {
@@ -330,6 +351,49 @@ export default class Settings extends React.Component<ISettingsProps, ISettingsS
                                                 onChange={(e) => this.setState({ pruefenTage: e.target.value })}
                                                 style={{ width: '150px' }}
                                                 min="1"
+                                            />
+                                        </div>
+
+                                        <div className={styles.formField} style={{ marginBottom: 24 }}>
+                                            <label className={styles.formLabel}>Bezeichnung (Einzahl)</label>
+                                            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 12px 0' }}>
+                                                Wie ein einzelner Vorgang im UI genannt wird, z.B. "Anfrage", "Ticket", "Case".
+                                            </p>
+                                            <input
+                                                type="text"
+                                                className={styles.formInput}
+                                                value={this.state.entityLabelSingular}
+                                                onChange={(e) => this.setState({ entityLabelSingular: e.target.value })}
+                                                style={{ width: '250px' }}
+                                            />
+                                        </div>
+
+                                        <div className={styles.formField} style={{ marginBottom: 24 }}>
+                                            <label className={styles.formLabel}>Bezeichnung (Mehrzahl)</label>
+                                            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 12px 0' }}>
+                                                Mehrzahl-Form, z.B. "Anfragen", "Tickets", "Cases".
+                                            </p>
+                                            <input
+                                                type="text"
+                                                className={styles.formInput}
+                                                value={this.state.entityLabelPlural}
+                                                onChange={(e) => this.setState({ entityLabelPlural: e.target.value })}
+                                                style={{ width: '250px' }}
+                                            />
+                                        </div>
+
+                                        <div className={styles.formField} style={{ marginBottom: 24 }}>
+                                            <label className={styles.formLabel}>Projektdaten-CSV (Pfad)</label>
+                                            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 12px 0' }}>
+                                                Server-relativer Pfad zur CSV-Datei mit Projektdaten für die Auto-Vervollständigung, z.B. "/sites/MeineSite/Projektliste/Projektliste.csv". Leer lassen, um die Auto-Vervollständigung zu deaktivieren.
+                                            </p>
+                                            <input
+                                                type="text"
+                                                className={styles.formInput}
+                                                value={this.state.projectsCsvPath}
+                                                onChange={(e) => this.setState({ projectsCsvPath: e.target.value })}
+                                                style={{ width: '100%' }}
+                                                placeholder="/sites/MeineSite/Projektliste/Projektliste.csv"
                                             />
                                         </div>
 

@@ -8,27 +8,50 @@ import '@pnp/sp/site-users/web';
 import '@pnp/sp/profiles';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 import { ICaseItem, IProjektItem, INewCaseForm, IKpiData, IKategorieItem, IKundenAnwendungItem } from '../models/types';
-
-// NOTE: List names are hardcoded defaults for now. Ticket 2 (Config Layer +
-// Feld-Mapping) replaces these with tenant-configurable values.
-const CASE_LIST = 'CaseFlow_Cases';
-const PROJEKT_LIST = 'CaseFlow_Projects';
-const KATEGORIEN_LIST = 'CaseFlow_Categories';
-const KUNDEN_ANWENDUNGEN_LIST = 'CaseFlow_CustomerApplications';
-const CONFIG_LIST = 'CaseFlow_Config';
+import { CONFIG_KEYS, DEFAULT_LIST_NAMES, IListNamesConfig } from '../models/config';
+import { FieldMappingService } from './FieldMappingService';
+import { ConfigService } from './ConfigService';
 
 function pad2(n: number): string {
     return n < 10 ? '0' + n : '' + n;
 }
 
+// Normalized field keys (see FieldMappingService) requested for the full
+// case shape — used by getAllCases() / getCaseById().
+const CASE_FIELDS_FULL = [
+    'ID', 'Title', 'field_1', 'field_2', 'field_4', 'field_5', 'field_6',
+    'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
+    'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
+    'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
+    'Aufgabenstellung', 'SOP', 'SegCode', 'AntwortIn', 'Zielpreis'
+];
+
+// Slightly reduced shape used by getOpenCases() (omits field_1 / Aufgabenstellung).
+const CASE_FIELDS_OPEN = [
+    'ID', 'Title', 'field_2', 'field_4', 'field_5', 'field_6',
+    'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
+    'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
+    'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
+    'SOP', 'SegCode', 'AntwortIn', 'Zielpreis'
+];
+
 export class SharePointService {
     private static _instance: SharePointService;
     private _nicknameCache: Map<string, string | null> = new Map();
+    private readonly listNames: IListNamesConfig;
 
-    public static init(context: WebPartContext): void {
+    private constructor(listNames: IListNamesConfig) {
+        this.listNames = listNames;
+    }
+
+    public static init(context: WebPartContext, listNames?: Partial<IListNamesConfig>): void {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sp.setup({ spfxContext: context as any });
-        SharePointService._instance = new SharePointService();
+        SharePointService._instance = new SharePointService({ ...DEFAULT_LIST_NAMES, ...(listNames || {}) });
+    }
+
+    public static get instance(): SharePointService {
+        return SharePointService._instance;
     }
 
     public async getNickname(loginName: string): Promise<string | undefined> {
@@ -76,29 +99,41 @@ export class SharePointService {
         }
     }
 
-    public static get instance(): SharePointService {
-        return SharePointService._instance;
+    // ─── Field-mapping helpers ───────────────────────────
+
+    /** Resolve normalized case field keys + lookup sub-fields for a `.select()` call. */
+    private buildCaseSelect(normalizedFields: string[]): string[] {
+        const resolved = FieldMappingService.resolveMany(normalizedFields);
+        const ersteller = FieldMappingService.resolve('Ersteller');
+        const verantwortlicher = FieldMappingService.resolve('Verantwortlicher');
+        return [
+            ...resolved,
+            `${ersteller}/Title`, `${ersteller}/EMail`, `${ersteller}/Name`,
+            `${verantwortlicher}/Title`, `${verantwortlicher}/EMail`, `${verantwortlicher}/Name`
+        ];
     }
 
-    // ─── TA-Liste CRUD ─────────────────────────────────
+    private caseExpand(): string[] {
+        return [FieldMappingService.resolve('Ersteller'), FieldMappingService.resolve('Verantwortlicher')];
+    }
 
-    public async getAllTAs(): Promise<ICaseItem[]> {
-        return sp.web.lists.getByTitle(CASE_LIST).items
-            .select(
-                'ID', 'Title', 'field_1', 'field_2', 'field_4', 'field_5', 'field_6',
-                'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
-                'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
-                'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
-                'Aufgabenstellung', 'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
-                'Ersteller/Title', 'Ersteller/EMail', 'Ersteller/Name',
-                'Verantwortlicher/Title', 'Verantwortlicher/EMail', 'Verantwortlicher/Name'
-            )
-            .expand('Ersteller', 'Verantwortlicher')
+    private denormalizeCase(raw: Record<string, unknown>): ICaseItem {
+        return FieldMappingService.denormalize<ICaseItem>(raw);
+    }
+
+    // ─── Case CRUD ─────────────────────────────────
+
+    public async getAllCases(): Promise<ICaseItem[]> {
+        const raw = await sp.web.lists.getByTitle(this.listNames.cases).items
+            .select(...this.buildCaseSelect(CASE_FIELDS_FULL))
+            .expand(...this.caseExpand())
             .top(2000)
-            .orderBy('Modified', false)
+            .orderBy(FieldMappingService.resolve('Modified'), false)
             .get();
+        return raw.map((r: Record<string, unknown>) => this.denormalizeCase(r));
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async getSiteUsers(): Promise<any[]> {
         // PrincipalType 1 = User. Also filter out system accounts which typically have null/empty email or specific titles.
         return sp.web.siteUsers
@@ -107,6 +142,7 @@ export class SharePointService {
             .get();
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async searchUsers(query: string): Promise<any[]> {
         if (!query || query.length < 3) return [];
         try {
@@ -120,6 +156,7 @@ export class SharePointService {
             });
             // Only show users whose email local part contains a dot (e.g. John.Doe@...)
             // This filters out system/service accounts with numeric or coded email prefixes
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return results.filter((u: any) => {
                 const email: string = u.EntityData?.Email || u.Description || '';
                 if (!email || !email.includes('@')) return false;
@@ -142,40 +179,26 @@ export class SharePointService {
         }
     }
 
-    public async getOpenTAs(): Promise<ICaseItem[]> {
-        return sp.web.lists.getByTitle(CASE_LIST).items
-            .select(
-                'ID', 'Title', 'field_2', 'field_4', 'field_5', 'field_6',
-                'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
-                'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
-                'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
-                'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
-                'Ersteller/Title', 'Ersteller/EMail', 'Ersteller/Name',
-                'Verantwortlicher/Title', 'Verantwortlicher/EMail', 'Verantwortlicher/Name'
-            )
-            .expand('Ersteller', 'Verantwortlicher')
-            .filter("Status ne 'abgeschlossen'")
+    public async getOpenCases(): Promise<ICaseItem[]> {
+        const raw = await sp.web.lists.getByTitle(this.listNames.cases).items
+            .select(...this.buildCaseSelect(CASE_FIELDS_OPEN))
+            .expand(...this.caseExpand())
+            .filter(`${FieldMappingService.resolve('Status')} ne 'abgeschlossen'`)
             .top(2000)
-            .orderBy('Modified', false)
+            .orderBy(FieldMappingService.resolve('Modified'), false)
             .get();
+        return raw.map((r: Record<string, unknown>) => this.denormalizeCase(r));
     }
 
     public async getCaseById(id: number): Promise<ICaseItem> {
-        return sp.web.lists.getByTitle(CASE_LIST).items.getById(id)
-            .select(
-                'ID', 'Title', 'field_1', 'field_2', 'field_4', 'field_5', 'field_6',
-                'field_8', 'field_9', 'field_10', 'field_11', 'field_12', 'field_13',
-                'field_14', 'field_15', 'field_16', 'field_17', 'field_18', 'field_19',
-                'field_20', 'field_21', 'field_22', 'Erledigungsdatum', 'Status', 'Modified',
-                'Aufgabenstellung', 'SOP', 'SegCode', 'AntwortIn', 'Zielpreis',
-                'Ersteller/Title', 'Ersteller/EMail', 'Ersteller/Name',
-                'Verantwortlicher/Title', 'Verantwortlicher/EMail', 'Verantwortlicher/Name'
-            )
-            .expand('Ersteller', 'Verantwortlicher')
+        const raw = await sp.web.lists.getByTitle(this.listNames.cases).items.getById(id)
+            .select(...this.buildCaseSelect(CASE_FIELDS_FULL))
+            .expand(...this.caseExpand())
             .get();
+        return this.denormalizeCase(raw);
     }
 
-    public async createTA(form: INewCaseForm, caseNr: string): Promise<number> {
+    public async createCase(form: INewCaseForm, caseNr: string): Promise<number> {
         const today = new Date();
         const dateStr = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
 
@@ -194,6 +217,7 @@ export class SharePointService {
         // Get the current user to set as Ersteller
         const currentUser = await sp.web.currentUser.get();
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const item: any = {
             Title: caseNr,
             field_8: form.kunde,
@@ -227,11 +251,14 @@ export class SharePointService {
             }
         });
 
+        const normalizedItem = FieldMappingService.normalize(item);
+
         try {
-            const result = await sp.web.lists.getByTitle(CASE_LIST).items.add(item);
+            const result = await sp.web.lists.getByTitle(this.listNames.cases).items.add(normalizedItem);
             return result.data.ID as number;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
-            console.error("Error creating TA:", e);
+            console.error("Error creating case:", e);
             if (e.isHttpRequestError) {
                 const data = await e.response.json();
                 console.error("SharePoint REST API Error details:", data);
@@ -243,20 +270,21 @@ export class SharePointService {
         }
     }
 
-    public async updateTA(id: number, fields: Partial<Record<string, string | number | undefined>>): Promise<void> {
-        await sp.web.lists.getByTitle(CASE_LIST).items.getById(id).update(fields);
+    public async updateCase(id: number, fields: Partial<Record<string, string | number | undefined>>): Promise<void> {
+        const normalizedFields = FieldMappingService.normalize(fields);
+        await sp.web.lists.getByTitle(this.listNames.cases).items.getById(id).update(normalizedFields);
     }
 
     public async getAttachments(id: number): Promise<{ FileName: string; ServerRelativeUrl: string }[]> {
-        return sp.web.lists.getByTitle(CASE_LIST).items.getById(id).attachmentFiles.get();
+        return sp.web.lists.getByTitle(this.listNames.cases).items.getById(id).attachmentFiles.get();
     }
 
     public async addAttachment(id: number, fileName: string, content: ArrayBuffer): Promise<void> {
-        await sp.web.lists.getByTitle(CASE_LIST).items.getById(id).attachmentFiles.add(fileName, content);
+        await sp.web.lists.getByTitle(this.listNames.cases).items.getById(id).attachmentFiles.add(fileName, content);
     }
 
     public async deleteAttachment(id: number, fileName: string): Promise<void> {
-        await sp.web.lists.getByTitle(CASE_LIST).items.getById(id).attachmentFiles.getByName(fileName).delete();
+        await sp.web.lists.getByTitle(this.listNames.cases).items.getById(id).attachmentFiles.getByName(fileName).delete();
     }
 
     private convertToIso(dateStr: string): string {
@@ -269,6 +297,7 @@ export class SharePointService {
     }
 
     public async setTermin(id: number, termin: string, verantwortlicherId?: number, delayReason?: string): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {
             field_6: this.convertToIso(termin),
             Status: 'läuft planmäßig'
@@ -279,7 +308,7 @@ export class SharePointService {
         if (delayReason) {
             updateData.field_21 = delayReason;
         }
-        await this.updateTA(id, updateData);
+        await this.updateCase(id, updateData);
     }
 
     public async verschiebeTermin(id: number, neuerTermin: string, grund: string, alterTermin: string, urspruenglicherTermin?: string): Promise<void> {
@@ -291,7 +320,7 @@ export class SharePointService {
         if (!urspruenglicherTermin) {
             updateData.field_22 = this.convertToIso(alterTermin);
         }
-        await this.updateTA(id, updateData);
+        await this.updateCase(id, updateData);
     }
 
     public async getKpiData(cases: ICaseItem[]): Promise<IKpiData> {
@@ -303,13 +332,13 @@ export class SharePointService {
         };
     }
 
-    /** Auto-detect TA statuses based on planned date and update them if needed */
+    /** Auto-detect case statuses based on planned date and update them if needed */
     public async evaluateStatuses(cases: ICaseItem[]): Promise<number> {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const updates: { id: number; status: string }[] = [];
 
-        const pruefenTageRaw = await this.getConfigValue('PruefenTage', '3');
+        const pruefenTageRaw = await ConfigService.instance.getValue(CONFIG_KEYS.REVIEW_DAYS, '3');
         const pruefenTage = parseInt(pruefenTageRaw, 10) || 3;
 
         for (const caseItem of cases) {
@@ -333,7 +362,7 @@ export class SharePointService {
                 }
                 planDate.setHours(0, 0, 0, 0);
 
-                // Prüfen-Schwelle aus TA_Config (PruefenTage) — Werktage
+                // Prüfen-Schwelle aus CaseFlow_Config (PruefenTage) — Werktage
                 const pruefenDeadline = this.addWorkdays(today, pruefenTage);
 
                 if (planDate <= today) {
@@ -355,9 +384,9 @@ export class SharePointService {
         // that each re-trigger Power Automate flows
         for (const u of updates) {
             try {
-                await this.updateTA(u.id, { Status: u.status });
+                await this.updateCase(u.id, { Status: u.status });
             } catch (e) {
-                console.error("Auto-status update failed for TA", u.id, e);
+                console.error("Auto-status update failed for case", u.id, e);
             }
         }
 
@@ -387,16 +416,18 @@ export class SharePointService {
         const mm = pad2(now.getMonth() + 1);
         const prefix = `TA${yy}${mm}`;
 
-        // Alle TAs des aktuellen Monats abfragen
-        const items = await sp.web.lists.getByTitle(CASE_LIST).items
-            .select('Title')
-            .filter(`startswith(Title,'${prefix}')`)
+        const titleField = FieldMappingService.resolve('Title');
+
+        // Alle Cases des aktuellen Monats abfragen
+        const items = await sp.web.lists.getByTitle(this.listNames.cases).items
+            .select(titleField)
+            .filter(`startswith(${titleField},'${prefix}')`)
             .top(5000)
             .get();
 
         let maxSeq = 0;
         for (const item of items) {
-            const title: string = item.Title || '';
+            const title: string = item[titleField] || '';
             // Letzten 2 Zeichen = laufende Nummer
             const seqStr = title.substring(prefix.length);
             const seq = parseInt(seqStr, 10);
@@ -412,9 +443,11 @@ export class SharePointService {
 
     public async getProjekte(): Promise<IProjektItem[]> {
         try {
-            // Lade die CSV Datei direkt aus der Dokumentenbibliothek "Projektliste"
-            // Dies ist deutlich schneller als eine SharePoint Liste mit 1700 Elementen abzufragen
-            const fileUrl = '/sites/TechnischeAnfragen/Projektliste/Projektliste.csv';
+            const fileUrl = await ConfigService.instance.getValue(CONFIG_KEYS.PROJECTS_CSV_PATH, '');
+            if (!fileUrl) {
+                console.warn('No ProjectsCsvPath configured — skipping project data auto-fill.');
+                return [];
+            }
 
             // PnPjs: Dateiinhalt als Text (Blob/Text) abrufen
             const blob: Blob = await sp.web.getFileByServerRelativePath(fileUrl).getBlob();
@@ -513,7 +546,7 @@ export class SharePointService {
             return projekte;
 
         } catch (error) {
-            console.error("Fehler beim Laden der Projektliste.csv (Bitte sicherstellen, dass die Datei existiert):", error);
+            console.error("Fehler beim Laden der Projektliste (Bitte sicherstellen, dass die Datei existiert und ProjectsCsvPath konfiguriert ist):", error);
             return []; // Fallback, damit die App nicht crasht
         }
     }
@@ -529,7 +562,7 @@ export class SharePointService {
     // ─── Hilfstabellen (Kategorien & Kunden-Anwendungen) ─────────
 
     public async getKategorien(): Promise<IKategorieItem[]> {
-        return sp.web.lists.getByTitle(KATEGORIEN_LIST).items
+        return sp.web.lists.getByTitle(this.listNames.categories).items
             .select('ID', 'Title', 'Email')
             .top(500)
             .orderBy('Title', true)
@@ -539,19 +572,19 @@ export class SharePointService {
     public async addKategorie(title: string, email?: string): Promise<void> {
         const item: Record<string, string> = { Title: title };
         if (email) item.Email = email;
-        await sp.web.lists.getByTitle(KATEGORIEN_LIST).items.add(item);
+        await sp.web.lists.getByTitle(this.listNames.categories).items.add(item);
     }
 
     public async updateKategorie(id: number, fields: { Email?: string }): Promise<void> {
-        await sp.web.lists.getByTitle(KATEGORIEN_LIST).items.getById(id).update(fields);
+        await sp.web.lists.getByTitle(this.listNames.categories).items.getById(id).update(fields);
     }
 
     public async deleteKategorie(id: number): Promise<void> {
-        await sp.web.lists.getByTitle(KATEGORIEN_LIST).items.getById(id).delete();
+        await sp.web.lists.getByTitle(this.listNames.categories).items.getById(id).delete();
     }
 
     public async getKundenAnwendungen(kunde?: string): Promise<IKundenAnwendungItem[]> {
-        let query = sp.web.lists.getByTitle(KUNDEN_ANWENDUNGEN_LIST).items
+        let query = sp.web.lists.getByTitle(this.listNames.customerApplications).items
             .select('ID', 'Title', 'Anwendung')
             .top(2000)
             .orderBy('Title', true);
@@ -564,43 +597,13 @@ export class SharePointService {
     }
 
     public async addKundenAnwendung(kunde: string, anwendung: string): Promise<void> {
-        await sp.web.lists.getByTitle(KUNDEN_ANWENDUNGEN_LIST).items.add({
+        await sp.web.lists.getByTitle(this.listNames.customerApplications).items.add({
             Title: kunde,
             Anwendung: anwendung
         });
     }
 
     public async deleteKundenAnwendung(id: number): Promise<void> {
-        await sp.web.lists.getByTitle(KUNDEN_ANWENDUNGEN_LIST).items.getById(id).delete();
-    }
-
-    // ─── Config ─────────────────────────────────────────
-
-    public async getConfigValue(key: string, defaultValue: string = ''): Promise<string> {
-        try {
-            const items = await sp.web.lists.getByTitle(CONFIG_LIST).items
-                .filter(`Title eq '${key}'`)
-                .select('Value')
-                .top(1)
-                .get();
-
-            if (items.length > 0) {
-                return items[0].Value;
-            }
-        } catch (e) {
-            console.warn(`Could not read config key ${key}. Using default.`, e);
-        }
-        return defaultValue;
-    }
-
-    public async setConfigValue(key: string, value: string): Promise<void> {
-        const list = sp.web.lists.getByTitle(CONFIG_LIST);
-        const existing = await list.items.filter(`Title eq '${key}'`).select('ID').top(1).get();
-
-        if (existing.length > 0) {
-            await list.items.getById(existing[0].ID).update({ Value: value });
-        } else {
-            await list.items.add({ Title: key, Value: value });
-        }
+        await sp.web.lists.getByTitle(this.listNames.customerApplications).items.getById(id).delete();
     }
 }

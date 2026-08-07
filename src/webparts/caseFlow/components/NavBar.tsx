@@ -1,18 +1,23 @@
 import * as React from 'react';
 import styles from './App.module.scss';
 import { AppView } from '../models/types';
+import { LabelService } from '../services/LabelService';
 import { Icon } from '@fluentui/react/lib/Icon';
 
 export interface INavBarProps {
     activeView: AppView;
+    config: Record<string, string>;
     onNavigate: (view: AppView) => void;
 }
 
-const NavBar: React.FC<INavBarProps> = ({ activeView, onNavigate }) => {
+const NavBar: React.FC<INavBarProps> = ({ activeView, config, onNavigate }) => {
+    const entitySingular = LabelService.getEntityLabelSingular(config);
+    const entityPlural = LabelService.getEntityLabelPlural(config);
+
     const items = [
         { view: AppView.Dashboard, iconName: 'HomeSolid', label: 'Home' },
-        { view: AppView.NewCase, iconName: 'Add', label: 'Neue TA' },
-        { view: AppView.CaseList, iconName: 'BulletedList', label: 'Alle TAs' },
+        { view: AppView.NewCase, iconName: 'Add', label: `Neue ${entitySingular}` },
+        { view: AppView.CaseList, iconName: 'BulletedList', label: `Alle ${entityPlural}` },
         { view: AppView.Analytics, iconName: 'BarChartVertical', label: 'Analytics' },
         { view: AppView.Schedule, iconName: 'Calendar', label: 'Planen' },
         { view: AppView.Settings, iconName: 'Settings', label: 'Einstellungen' },

@@ -2,6 +2,8 @@ import * as React from 'react';
 import styles from './App.module.scss';
 import { ICaseItem, STATUS_VALUES, INITIAL_DELAY_REASONS } from '../models/types';
 import { SharePointService } from '../services/SharePointService';
+import { ConfigService } from '../services/ConfigService';
+import { CONFIG_KEYS } from '../models/config';
 import StatusPill from './StatusPill';
 import Modal from './Modal';
 
@@ -103,7 +105,7 @@ export default class CaseDetail extends React.Component<ICaseDetailProps, ICaseD
 
     public async componentDidMount(): Promise<void> {
         try {
-            const delayRaw = await SharePointService.instance.getConfigValue('DelayThresholdDays', '2');
+            const delayRaw = await ConfigService.instance.getValue(CONFIG_KEYS.DELAY_THRESHOLD_DAYS, '2');
             this.setState({ delayThresholdDays: parseInt(delayRaw, 10) || 2 });
         } catch (e) {
             console.error("Failed to load delay threshold config", e);

@@ -1,17 +1,20 @@
 import * as React from 'react';
 import styles from './App.module.scss';
 import { ICaseItem, IKpiData, AppView } from '../models/types';
+import { StatusConfigService } from '../services/StatusConfigService';
+import { LabelService } from '../services/LabelService';
 import KpiTile from './KpiTile';
 
 export interface IDashboardProps {
     cases: ICaseItem[];
     kpi: IKpiData;
+    config: Record<string, string>;
     userName: string;
     onNavigate: (view: AppView, filterStatus?: string) => void;
     onSelectCase: (id: number) => void;
 }
 
-const Dashboard: React.FC<IDashboardProps> = ({ cases, kpi, userName, onNavigate }) => {
+const Dashboard: React.FC<IDashboardProps> = ({ cases, kpi, config, userName, onNavigate }) => {
 
     return (
         <>
@@ -29,30 +32,30 @@ const Dashboard: React.FC<IDashboardProps> = ({ cases, kpi, userName, onNavigate
                 <div className={styles.kpiRow}>
                     <KpiTile
                         count={kpi.overdue}
-                        label="Überfällig"
+                        label={StatusConfigService.getLabel('überfällig')}
                         actionLabel="Anzeigen"
-                        color="#EF4444"
+                        color={StatusConfigService.getColor('überfällig')}
                         onClick={() => onNavigate(AppView.CaseList, 'überfällig')}
                     />
                     <KpiTile
                         count={kpi.plan}
-                        label="Termin planen"
+                        label={StatusConfigService.getLabel('Termin planen')}
                         actionLabel="Planen"
-                        color="#3B82F6"
+                        color={StatusConfigService.getColor('Termin planen')}
                         onClick={() => onNavigate(AppView.Schedule)}
                     />
                     <KpiTile
                         count={kpi.onTrack}
                         label="Planmäßig"
                         actionLabel="Anzeigen"
-                        color="#10B981"
+                        color={StatusConfigService.getColor('läuft planmäßig')}
                         onClick={() => onNavigate(AppView.CaseList, 'läuft planmäßig')}
                     />
                     <KpiTile
                         count={kpi.review}
-                        label="Prüfen"
+                        label={StatusConfigService.getLabel('prüfen')}
                         actionLabel="Anzeigen"
-                        color="#F59E0B"
+                        color={StatusConfigService.getColor('prüfen')}
                         onClick={() => onNavigate(AppView.CaseList, 'prüfen')}
                     />
                 </div>
@@ -65,10 +68,10 @@ const Dashboard: React.FC<IDashboardProps> = ({ cases, kpi, userName, onNavigate
                         role="button"
                         tabIndex={0}
                     >
-                        <span className={styles.actionTitle} style={{ color: '#3B82F6' }}>
-                            Neue TA anlegen
+                        <span className={styles.actionTitle} style={{ color: StatusConfigService.getColor('Termin planen') }}>
+                            {LabelService.getCreateActionLabel(config)}
                         </span>
-                        <span className={styles.actionSub}>Technische Anfrage schnell erfassen</span>
+                        <span className={styles.actionSub}>{LabelService.getEntityLabelSingular(config)} schnell erfassen</span>
                     </div>
                     <div
                         className={styles.actionTileGreen}
